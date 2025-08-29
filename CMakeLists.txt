@@ -13,12 +13,13 @@ include_directories(
 add_compile_definitions()
 
 # Module
-include(flags.cmake)
 add_library(amxx_mqtt_client SHARED
     src/sdk/amxxmodule.cpp
     src/module.cpp
     src/natives.cpp
 )
+
+include(flags.cmake)
 set_target_properties(amxx_mqtt_client PROPERTIES
     PREFIX ""
     OUTPUT_NAME "mqtt_client_amxx$<$<BOOL:${UNIX}>:_i386>"
