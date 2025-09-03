@@ -7,7 +7,10 @@
 
 #include <unordered_map>
 
+#include "MqttClient.h"
+
 class MqttClientMgr {
+    std::unordered_map<int, MqttClient*> clients;
 public:
     MqttClientMgr() = delete;
 
