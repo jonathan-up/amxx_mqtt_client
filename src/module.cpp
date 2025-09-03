@@ -1,5 +1,5 @@
 //
-// Created by jonathan on 2/25/25.
+// Created by jonathan on 9/2/25.
 //
 
 #include "sdk/amxxmodule.h"
@@ -8,27 +8,24 @@
 #include "MqttClient.h"
 
 #define BLOCKER "mqtt://202.189.6.222:1883"
-#define CLIENTID "CS_SERVER"
+#define CLIENT_ID "CS_SERVER"
 #define TOPIC "cs/server"
 
 MqttClient *mqttClient = nullptr;
 
-void onMsg(mqtt::const_message_ptr msg_ptr)
-{
+void onMsg(const mqtt::const_message_ptr &msg_ptr) {
     MF_Log("OO_MSG: %s", msg_ptr->get_payload_str().c_str());
 }
 
-void OnAmxxAttach()
-{
+void OnAmxxAttach() {
     MF_AddNatives(g_natives);
     MF_Log("==================OnAmxxAttach==================");
 
-    mqttClient = new MqttClient{BLOCKER, CLIENTID};
+    mqttClient = new MqttClient{BLOCKER, CLIENT_ID};
     mqttClient->setMessageHandler(onMsg);
     mqttClient->connect();
 
-    if (mqttClient->getClient()->is_connected())
-    {
+    if (mqttClient->getClient()->is_connected()) {
         mqttClient->subscribe(TOPIC, 0);
         MF_Log("Connected to %s", BLOCKER);
         MF_Log("Subscribe topic `%s`", TOPIC);
@@ -36,12 +33,10 @@ void OnAmxxAttach()
     MF_Log("==================OnAmxxAttach==================");
 }
 
-void OnAmxxDetach()
-{
+void OnAmxxDetach() {
     MF_Log("==================OnAmxxDetach==================");
-    if (mqttClient != nullptr)
-    {
-        delete mqttClient;
-    }
+
+    delete mqttClient;
+
     MF_Log("==================OnAmxxDetach==================");
 }

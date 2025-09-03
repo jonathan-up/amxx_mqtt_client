@@ -1,30 +1,36 @@
+//
+// Created by jonathan on 9/2/25.
+//
+
 #ifndef MQTT_CLIENT_H
 #define MQTT_CLIENT_H
 
 #include <mqtt/async_client.h>
 #include <string>
 
-class MqttClient
-{
+class MqttClient {
     mqtt::async_client *m_pClient = nullptr;
-    mqtt::token_ptr m_pToken = nullptr;
 
 public:
     MqttClient(const std::string &blocker, const std::string &client);
+
     ~MqttClient();
 
-    void setConnectedHandler(mqtt::async_client::connection_handler cb);
-    void setConnectioLostHandler(mqtt::async_client::connection_handler cb);
-    void setDisconnectHandler(mqtt::async_client::disconnected_handler cb);
-    void setMessageHandler(mqtt::async_client::message_handler cb);
+    void setConnectedHandler(const mqtt::async_client::connection_handler &cb) const;
 
-    void connect();
+    void setConnectioLostHandler(const mqtt::async_client::connection_handler &cb) const;
 
-    void subscribe(const char* topicName, int qos) const;
-    void publish(const std::string& topicName, const std::string& payload, int qos = 0);
+    void setDisconnectHandler(const mqtt::async_client::disconnected_handler &cb) const;
 
-    mqtt::async_client* getClient() const {
+    void setMessageHandler(const mqtt::async_client::message_handler &cb) const;
 
+    void connect() const;
+
+    void subscribe(const char *topicName, int qos = 0) const;
+
+    void publish(const std::string &topicName, const std::string &payload, int qos = 0) const;
+
+    [[nodiscard]] mqtt::async_client *getClient() const {
         return this->m_pClient;
     }
 };

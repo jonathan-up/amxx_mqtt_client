@@ -5,6 +5,7 @@ add_library(amxx_mqtt_client SHARED
     natives.cpp
 
     MqttClient.cpp
+    MqttClientMgr.cpp
 )
 
 include(../flags.cmake)
