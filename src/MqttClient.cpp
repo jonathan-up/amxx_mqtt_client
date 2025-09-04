@@ -36,9 +36,7 @@ void MqttClient::connect() const {
                 .keep_alive_interval(std::chrono::seconds(20))
                 .finalize();
 
-        this->m_pClient
-                ->connect(opts)
-                ->wait();
+        this->m_pClient->connect(opts);
     } catch (const mqtt::exception &e) {
         std::cout << "ERR: " << e.what() << std::endl;
     }
@@ -46,9 +44,7 @@ void MqttClient::connect() const {
 
 void MqttClient::subscribe(const char *topicName, const int qos) const {
     if (this->m_pClient->is_connected()) {
-        this->m_pClient
-                ->subscribe(topicName, qos)
-                ->wait();
+        this->m_pClient->subscribe(topicName, qos);
     }
 }
 
