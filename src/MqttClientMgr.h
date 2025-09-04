@@ -31,6 +31,20 @@ public:
      */
     int make(const std::string &blocker, const std::string &clientId);
 
+    /**
+     * Get a client by index
+     *
+     * @param index client index
+     *
+     * @return MqttClient*
+     */
+    const MqttClient *getClient(int index);
+
+    /**
+     * Destroy a client by index
+     *
+     * @param index client index
+     */
     void destroy(int index);
 
 private:

@@ -18,6 +18,10 @@ int MqttClientMgr::make(const std::string &blocker, const std::string &clientId)
     return 0;
 }
 
+const MqttClient *MqttClientMgr::getClient(const int index) {
+    return this->m_clients[index];
+}
+
 void MqttClientMgr::destroy(const int index) {
     if (const auto it = this->m_clients.find(index); it != m_clients.end()) {
         delete it->second;
