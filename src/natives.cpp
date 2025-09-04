@@ -42,23 +42,25 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
         return 0;
     }
 
-    const AmxxMqttClient *client = g_mqttClientMgr.getClient(params[arg_handle]);
+    const int handle = params[arg_handle];
+
+    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
     if (client == nullptr) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", params[arg_handle]);
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", handle);
         return 0;
     }
 
-    client->setConnectedHandler([&client](const mqtt::string &) {
-        ConnectedCallbackDispatcher(client);
+    client->setConnectedHandler([handle](const mqtt::string &) {
+        ConnectedCallbackDispatcher(handle);
     });
-    client->setMessageHandler([&client](const mqtt::const_message_ptr &msg) {
-        MessageCallbackDispatcher(client, msg);
+    client->setMessageHandler([handle](const mqtt::const_message_ptr &msg) {
+        MessageCallbackDispatcher(handle, msg);
     });
-    client->setConnectioLostHandler([&client](const mqtt::string &msg) {
-        ConnectionLostCallbackDispatcher(client, msg);
+    client->setConnectioLostHandler([handle](const mqtt::string &msg) {
+        ConnectionLostCallbackDispatcher(handle, msg);
     });
-    client->setDisconnectHandler([&client](const mqtt::properties &, const mqtt::ReasonCode code) {
-        DisconnectedCallbackDispatcher(client, code);
+    client->setDisconnectHandler([handle](const mqtt::properties &, const mqtt::ReasonCode code) {
+        DisconnectedCallbackDispatcher(handle, code);
     });
 
     client->connect();

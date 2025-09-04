@@ -11,22 +11,22 @@ static std::mutex mutex_message;
 static std::mutex mutex_connection_lost;
 static std::mutex mutex_disconnected;
 
-void ConnectedCallbackDispatcher(const AmxxMqttClient *client) {
+void ConnectedCallbackDispatcher(const int handle) {
     std::lock_guard lock(mutex_connected);
     // Call forwards
 }
 
-void MessageCallbackDispatcher(const AmxxMqttClient *client, const mqtt::const_message_ptr &msg) {
+void MessageCallbackDispatcher(const int handle, const mqtt::const_message_ptr &msg) {
     std::lock_guard lock(mutex_message);
     // Call forwards
 }
 
-void ConnectionLostCallbackDispatcher(const AmxxMqttClient *client, const std::string &reason) {
+void ConnectionLostCallbackDispatcher(const int handle, const std::string &reason) {
     std::lock_guard lock(mutex_connection_lost);
     // Call forwards
 }
 
-void DisconnectedCallbackDispatcher(const AmxxMqttClient *client, mqtt::ReasonCode reasonCode) {
+void DisconnectedCallbackDispatcher(const int handle, mqtt::ReasonCode reasonCode) {
     std::lock_guard lock(mutex_disconnected);
     // Call forwards
 }

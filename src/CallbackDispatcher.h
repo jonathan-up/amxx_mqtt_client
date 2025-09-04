@@ -8,12 +8,12 @@
 #include "AmxxMqttClient.h"
 
 // Callback dispatchers
-void ConnectedCallbackDispatcher(const AmxxMqttClient *client);
+void ConnectedCallbackDispatcher( int handle);
 
-void MessageCallbackDispatcher(const AmxxMqttClient *client, const mqtt::const_message_ptr &msg);
+void MessageCallbackDispatcher( int handle, const mqtt::const_message_ptr &msg);
 
-void ConnectionLostCallbackDispatcher(const AmxxMqttClient *client, const std::string &reason);
+void ConnectionLostCallbackDispatcher(int handle, const std::string &reason);
 
-void DisconnectedCallbackDispatcher(const AmxxMqttClient *client, mqtt::ReasonCode reasonCode);
+void DisconnectedCallbackDispatcher(int handle, mqtt::ReasonCode reasonCode);
 
 #endif //CALLBACK_DISPATCHER_H
