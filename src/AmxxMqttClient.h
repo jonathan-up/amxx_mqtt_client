@@ -8,14 +8,15 @@
 #include "MqttClient.h"
 
 class AmxxMqttClient : public MqttClient {
-    int m_iOnConnectedForwardId = 0;
-    int m_iOnMessageForwardId = 0;
-    int m_iOnConnectionLostForwardId = 0;
-    int m_iOnDisconnectForwardId = 0;
+    int m_iOnConnectedForwardId = -1;
+    int m_iOnMessageForwardId = -1;
+    int m_iOnConnectionLostForwardId = -1;
+    int m_iOnDisconnectForwardId = -1;
 
 public:
-    AmxxMqttClient(const std::string &blocker, const std::string &client) : MqttClient(blocker, client) {
-    }
+    AmxxMqttClient(const std::string &blocker, const std::string &client);
+
+    ~AmxxMqttClient() override;
 
     [[nodiscard]] int getOnConnectedForwardId() const;
 

@@ -4,6 +4,27 @@
 
 #include "AmxxMqttClient.h"
 
+#include "sdk/amxxmodule.h"
+
+AmxxMqttClient::AmxxMqttClient(const std::string &blocker, const std::string &client) : MqttClient(blocker, client) {
+}
+
+AmxxMqttClient::~AmxxMqttClient() {
+    // Unregister forwards if exists
+    if (this->getOnConnectedForwardId() != -1) {
+        MF_UnregisterSPForward(this->getOnConnectedForwardId());
+    }
+    if (this->getOnMessageForwardId() != -1) {
+        MF_UnregisterSPForward(this->getOnMessageForwardId());
+    }
+    if (this->getOnConnectionLostForwardId() != -1) {
+        MF_UnregisterSPForward(this->getOnConnectionLostForwardId());
+    }
+    if (this->getDisconnectForwardId() != -1) {
+        MF_UnregisterSPForward(this->getDisconnectForwardId());
+    }
+}
+
 int AmxxMqttClient::getOnConnectedForwardId() const {
     return m_iOnConnectedForwardId;
 }
