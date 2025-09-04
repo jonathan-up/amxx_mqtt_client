@@ -59,3 +59,7 @@ void MqttClient::publish(const std::string &topicName, const std::string &payloa
         this->m_pClient->publish(msg);
     }
 }
+
+bool MqttClient::isConnected() const {
+    return this->m_pClient->is_connected();
+}

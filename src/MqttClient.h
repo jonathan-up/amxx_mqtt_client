@@ -30,6 +30,8 @@ public:
 
     void publish(const std::string &topicName, const std::string &payload, int qos = 0) const;
 
+    bool isConnected() const;
+
     [[nodiscard]] mqtt::async_client *getClient() const {
         return this->m_pClient;
     }
