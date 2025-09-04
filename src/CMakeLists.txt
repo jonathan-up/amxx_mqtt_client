@@ -4,6 +4,7 @@ add_library(amxx_mqtt_client SHARED
     module.cpp
     natives.cpp
 
+    CallbackDispatcher.cpp
     MqttClient.cpp
     AmxxMqttClient.cpp
     MqttClientMgr.cpp
