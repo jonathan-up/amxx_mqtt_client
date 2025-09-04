@@ -18,7 +18,7 @@ int MqttClientMgr::make(const std::string &blocker, const std::string &clientId)
     return 0;
 }
 
-const AmxxMqttClient *MqttClientMgr::getClient(const int index) {
+AmxxMqttClient *MqttClientMgr::getClient(const int index) {
     return this->m_clients[index];
 }
 

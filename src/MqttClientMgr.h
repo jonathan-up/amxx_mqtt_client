@@ -38,7 +38,7 @@ public:
      *
      * @return MqttClient*
      */
-    const AmxxMqttClient *getClient(int index);
+    AmxxMqttClient *getClient(int index);
 
     /**
      * Destroy a client by index
