@@ -14,7 +14,7 @@ class MqttClient {
 public:
     MqttClient(const std::string &blocker, const std::string &client);
 
-    ~MqttClient();
+    virtual ~MqttClient();
 
     void setConnectedHandler(const mqtt::async_client::connection_handler &cb) const;
 
