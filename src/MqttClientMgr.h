@@ -9,12 +9,12 @@
 #include <mutex>
 #include <set>
 
-#include "MqttClient.h"
+#include "AmxxMqttClient.h"
 
 #define MAX_INDEX 10000
 
 class MqttClientMgr {
-    std::unordered_map<int, MqttClient *> m_clients;
+    std::unordered_map<int, AmxxMqttClient *> m_clients;
     std::set<int> m_indexUsed;
     std::mutex m_mutex;
 

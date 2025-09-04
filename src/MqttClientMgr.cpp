@@ -12,7 +12,7 @@ MqttClientMgr::~MqttClientMgr() {
 
 int MqttClientMgr::make(const std::string &blocker, const std::string &clientId) {
     if (const int index = this->makeIndex(); index != 0) {
-        this->m_clients[index] = new MqttClient{blocker, clientId};
+        this->m_clients[index] = new AmxxMqttClient{blocker, clientId};
         return index;
     }
     return 0;
