@@ -117,6 +117,18 @@ native bool:mqtt_is_connect(const MqttHandle:handle);
 native mqtt_subscribe(const MqttHandle:handle, const topicName[]);
 
 /**
+ * Publish message to topic
+ *
+ * @note It should check connect first but in `connected_callback` DON'T DO IT
+ *
+ * @param handle which client
+ * @param topicName topic to publish
+ *
+ * @noreturn
+ */
+native mqtt_publish(const MqttHandle:handle, const topicName[], const data[]);
+
+/**
  * The `callback` will be called when client connected
  *
  * callback should be: public on_connected(const MqttHandle:h)
