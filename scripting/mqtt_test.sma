@@ -49,8 +49,9 @@ public cmd_connect()
 
 public on_connected(const MqttHandle:h)
 {
-    mqtt_subscribe(h, "cs/server");
-    server_print("%d -> subscribe to: cs/server", h);
+    // TODO: it stuck plugin
+    // mqtt_subscribe(h, "cs/server");
+    server_print("%d -> on_connected", h);
 }
 
 public on_message(const MqttHandle:h, const message[])
