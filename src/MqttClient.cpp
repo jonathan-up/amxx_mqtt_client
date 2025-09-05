@@ -43,17 +43,13 @@ void MqttClient::connect() const {
 }
 
 void MqttClient::subscribe(const char *topicName, const int qos) const {
-    if (this->m_pClient->is_connected()) {
-        this->m_pClient->subscribe(topicName, qos);
-    }
+    this->m_pClient->subscribe(topicName, qos);
 }
 
 void MqttClient::publish(const std::string &topicName, const std::string &payload, const int qos) const {
-    if (this->m_pClient->is_connected()) {
-        const mqtt::message_ptr msg = mqtt::make_message(topicName, payload);
-        msg->set_qos(qos);
-        this->m_pClient->publish(msg);
-    }
+    const mqtt::message_ptr msg = mqtt::make_message(topicName, payload);
+    msg->set_qos(qos);
+    this->m_pClient->publish(msg);
 }
 
 bool MqttClient::isConnected() const {
