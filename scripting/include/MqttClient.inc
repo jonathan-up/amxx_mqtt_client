@@ -67,7 +67,15 @@ native MqttHandle:mqtt_create(const blocker[], const client_id[]);
 native mqtt_destroy(const MqttHandle:handle);
 
 native mqtt_connect(const MqttHandle:handle);
+
+/**
+ * Check client connection
+ * DO NOT CALL IT IN `connected_callback` !!!
+ *
+ * @return true for connected, false for otherwise
+ */
 native bool:mqtt_is_connect(const MqttHandle:handle);
+
 native mqtt_subscribe(const MqttHandle:handle, const topicName[]);
 
 native mqtt_set_connected_callback(const MqttHandle:handle, const callback[]);
