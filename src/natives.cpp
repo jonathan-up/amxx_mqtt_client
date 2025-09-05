@@ -112,8 +112,12 @@ cell AMX_NATIVE_CALL mqtt_subscribe(AMX *amx, cell *params) {
         return 0;
     }
 
-    // get topic name
+    // get topic name & check it
     const std::string topicName{MF_GetAmxString(amx, params[arg_topic], arg_topic - 1, nullptr)};
+    if (topicName.empty()) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Topic name could not be empty");
+        return 0;
+    }
 
     // subscribe
     client->subscribe(topicName.c_str());
