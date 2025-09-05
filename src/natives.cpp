@@ -14,7 +14,7 @@ cell AMX_NATIVE_CALL mqtt_create(AMX *amx, cell *params) {
     enum { arg_count, arg_blocker, arg_client_id };
 
     // check args
-    if (ARG_COUNT < 3) {
+    if (ARG_COUNT < 2) {
         MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
