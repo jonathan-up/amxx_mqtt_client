@@ -63,20 +63,79 @@ enum MqttReasonCode {
     MQTTPP_V3_CODE = 0
 }
 
+/**
+ * Create a client
+ *
+ * @note Needs to be freed using mqtt_destroy() native.
+ *
+ * @param blocker the mqtt blocker server
+ * @param client_id client id
+ *
+ * @return client handle
+ */
 native MqttHandle:mqtt_create(const blocker[], const client_id[]);
+
+/**
+ * Destroy a client
+ *
+ * @param handle which client
+ *
+ * @noreturn
+ */
 native mqtt_destroy(const MqttHandle:handle);
 
+/**
+ * Connect to blocker
+ *
+ * @param handle which client
+ *
+ * @noreturn
+ */
 native mqtt_connect(const MqttHandle:handle);
 
 /**
  * Check client connection
- * DO NOT CALL IT IN `connected_callback` !!!
+ *
+ * @note DO NOT CALL IT IN `connected_callback` !!!
+ *
+ * @param handle which client
  *
  * @return true for connected, false for otherwise
  */
 native bool:mqtt_is_connect(const MqttHandle:handle);
 
+/**
+ * Subscribe topic
+ *
+ * @note It should check connect first but in `connected_callback` DON'T DO IT
+ *
+ * @param handle which client
+ * @param topicName topic for subscribe
+ *
+ * @noreturn
+ */
 native mqtt_subscribe(const MqttHandle:handle, const topicName[]);
 
+/**
+ * The `callback` will be called when client connected
+ *
+ * callback should be: public on_connected(const MqttHandle:h)
+ *
+ * @param handle which client
+ * @param callback target function
+ *
+ * @noreturn
+ */
 native mqtt_set_connected_callback(const MqttHandle:handle, const callback[]);
+
+/**
+ * The `callback` will be called when client receive message
+ *
+ * @note callback should be: public on_message(const MqttHandle:h, const message[])
+ *
+ * @param handle which client
+ * @param callback target function
+ *
+ * @noreturn
+ */
 native mqtt_set_message_callback(const MqttHandle:handle, const callback[]);
