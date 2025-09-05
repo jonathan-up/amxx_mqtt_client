@@ -15,11 +15,17 @@ static std::mutex mutex_disconnected;
 
 void ConnectedCallbackDispatcher(const int handle) {
     std::lock_guard lock(mutex_connected);
-    // Call forwards
+
+    // Call forwards if exists
+    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    if (const int forwardId = client->getOnConnectedForwardId(); forwardId != -1) {
+        MF_ExecuteForward(forwardId, handle);
+    }
 }
 
 void MessageCallbackDispatcher(const int handle, const mqtt::const_message_ptr &msg) {
     std::lock_guard lock(mutex_message);
+
     // Call forwards if exists
     const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
     if (const int forwardId = client->getOnMessageForwardId(); forwardId != -1) {
