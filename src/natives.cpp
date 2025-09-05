@@ -127,8 +127,36 @@ cell AMX_NATIVE_CALL mqtt_subscribe(AMX *amx, cell *params) {
     return 1;
 }
 
-cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
+cell AMX_NATIVE_CALL mqtt_unsubscribe(AMX *amx, cell *params) {
+    enum { arg_count, arg_handle, arg_topic };
 
+    // check args
+    if (ARG_COUNT < 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
+        return 0;
+    }
+
+    // check handle
+    const AmxxMqttClient *client = g_mqttClientMgr.getClient(params[arg_handle]);
+    if (client == nullptr) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", params[arg_handle]);
+        return 0;
+    }
+
+    // get topic name & check it
+    const std::string topicName{MF_GetAmxString(amx, params[arg_topic], arg_topic - 1, nullptr)};
+    if (topicName.empty()) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Topic name could not be empty");
+        return 0;
+    }
+
+    // subscribe
+    client->unsubscribe(topicName);
+
+    return 1;
+}
+
+cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
     enum { arg_count, arg_handle, arg_topic, arg_data };
 
     // check args
@@ -229,6 +257,7 @@ AMX_NATIVE_INFO g_natives[] =
     {"mqtt_connect", mqtt_connect},
     {"mqtt_is_connect", mqtt_is_connect},
     {"mqtt_subscribe", mqtt_subscribe},
+    {"mqtt_unsubscribe", mqtt_unsubscribe},
     {"mqtt_publish", mqtt_publish},
     {"mqtt_set_connected_callback", mqtt_set_connected_callback},
     {"mqtt_set_message_callback", mqtt_set_message_callback},
