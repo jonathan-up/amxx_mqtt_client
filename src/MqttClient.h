@@ -27,6 +27,7 @@ public:
     void connect() const;
 
     void subscribe(const char *topicName, int qos = 0) const;
+    void unsubscribe(const std::string& topicName) const;
 
     void publish(const std::string &topicName, const std::string &payload, int qos = 0) const;
 
