@@ -14,8 +14,8 @@ cell AMX_NATIVE_CALL mqtt_create(AMX *amx, cell *params) {
     enum { arg_count, arg_blocker, arg_client_id };
 
     // check args
-    if (params[arg_count] < 3) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to function, the inc file incorrect?");
+    if (ARG_COUNT < 3) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
@@ -31,8 +31,8 @@ cell AMX_NATIVE_CALL mqtt_destroy(AMX *amx, cell *params) {
     enum { arg_count, arg_handle };
 
     // check args
-    if (params[arg_count] < 1) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to function, the inc file incorrect?");
+    if (ARG_COUNT < 1) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
@@ -45,8 +45,8 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
     enum { arg_count, arg_handle };
 
     // check args
-    if (params[arg_count] < 1) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to function, the inc file incorrect?");
+    if (ARG_COUNT < 1) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
@@ -82,8 +82,8 @@ cell AMX_NATIVE_CALL mqtt_is_connect(AMX *amx, cell *params) {
     enum { arg_count, arg_handle };
 
     // check args
-    if (params[arg_count] < 1) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to function, the inc file incorrect?");
+    if (ARG_COUNT < 1) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
@@ -102,8 +102,8 @@ cell AMX_NATIVE_CALL mqtt_subscribe(AMX *amx, cell *params) {
     enum { arg_count, arg_handle, arg_topic };
 
     // check args
-    if (params[arg_count] < 2) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to function, the inc file incorrect?");
+    if (ARG_COUNT < 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
@@ -164,8 +164,8 @@ cell AMX_NATIVE_CALL mqtt_set_connected_callback(AMX *amx, cell *params) {
     enum { arg_count, arg_handle, arg_callback };
 
     // check args
-    if (params[arg_count] < 2) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to function, the inc file incorrect?");
+    if (ARG_COUNT < 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
@@ -195,8 +195,8 @@ cell AMX_NATIVE_CALL mqtt_set_message_callback(AMX *amx, cell *params) {
     enum { arg_count, arg_handle, arg_callback };
 
     // check args
-    if (params[arg_count] < 2) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to function, the inc file incorrect?");
+    if (ARG_COUNT < 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
