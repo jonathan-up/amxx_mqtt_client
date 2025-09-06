@@ -173,3 +173,15 @@ native mqtt_set_message_callback(const MqttHandle:handle, const callback[]);
  * @noreturn
  */
 native mqtt_set_connection_lost_callback(const MqttHandle:handle, const callback[]);
+
+/**
+ * The `callback` will be called when client disconnected
+ *
+ * @note callback should be: public on_disconnected(const MqttHandle:h, const MqttReasonCode:reasonCode)
+ *
+ * @param handle which client
+ * @param callback target function
+ *
+ * @noreturn
+ */
+native mqtt_set_disconnected_callback(const MqttHandle:handle, const callback[]);

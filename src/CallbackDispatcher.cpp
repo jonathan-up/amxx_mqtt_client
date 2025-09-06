@@ -46,5 +46,10 @@ void ConnectionLostCallbackDispatcher(const int handle, const std::string &reaso
 
 void DisconnectedCallbackDispatcher(const int handle, mqtt::ReasonCode reasonCode) {
     std::lock_guard lock(mutex_disconnected);
+
     // Call forwards
+    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    if (const int forwardId = client->getDisconnectForwardId(); forwardId != -1) {
+        MF_ExecuteForward(forwardId, handle, reasonCode);
+    }
 }
