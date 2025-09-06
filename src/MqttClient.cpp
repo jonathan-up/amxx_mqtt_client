@@ -75,6 +75,10 @@ void MqttClient::connect() {
     this->m_pClient->connect(opts);
 }
 
+void MqttClient::disconnect() const {
+    this->m_pClient->disconnect();
+}
+
 void MqttClient::subscribe(const char *topicName, const int qos) const {
     this->m_pClient->subscribe(topicName, qos);
 }

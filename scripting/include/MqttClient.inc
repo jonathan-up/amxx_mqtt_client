@@ -94,6 +94,15 @@ native mqtt_destroy(const MqttHandle:handle);
 native mqtt_connect(const MqttHandle:handle);
 
 /**
+ * Disconnect from blocker
+ *
+ * @param handle which client
+ *
+ * @noreturn
+ */
+native mqtt_disconnect(const MqttHandle:handle);
+
+/**
  * Check client connection
  *
  * @param handle which client

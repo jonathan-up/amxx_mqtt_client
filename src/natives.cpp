@@ -88,6 +88,34 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
     }
 }
 
+cell AMX_NATIVE_CALL mqtt_disconnect(AMX *amx, cell *params) {
+    enum { arg_count, arg_handle };
+
+    // check args
+    if (ARG_COUNT < 1) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
+        return 0;
+    }
+
+    const int handle = params[arg_handle];
+
+    // check handle
+    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    if (client == nullptr) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", handle);
+        return 0;
+    }
+
+    try {
+        // connect
+        client->disconnect();
+        return 1;
+    } catch (const mqtt::exception &err) {
+        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        return 0;
+    }
+}
+
 cell AMX_NATIVE_CALL mqtt_is_connect(AMX *amx, cell *params) {
     enum { arg_count, arg_handle };
 
@@ -341,6 +369,7 @@ AMX_NATIVE_INFO g_natives[] =
     {"mqtt_create", mqtt_create},
     {"mqtt_destroy", mqtt_destroy},
     {"mqtt_connect", mqtt_connect},
+    {"mqtt_disconnect", mqtt_disconnect},
     {"mqtt_is_connect", mqtt_is_connect},
     {"mqtt_subscribe", mqtt_subscribe},
     {"mqtt_unsubscribe", mqtt_unsubscribe},
