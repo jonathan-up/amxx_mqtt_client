@@ -66,7 +66,7 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
     client->setMessageHandler([handle](const mqtt::const_message_ptr &msg) {
         MessageCallbackDispatcher(handle, msg);
     });
-    client->setConnectioLostHandler([handle](const mqtt::string &msg) {
+    client->setConnectionLostHandler([handle](const mqtt::string &msg) {
         ConnectionLostCallbackDispatcher(handle, msg);
     });
     client->setDisconnectHandler([handle](const mqtt::properties &, const mqtt::ReasonCode code) {

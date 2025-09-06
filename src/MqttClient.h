@@ -18,7 +18,7 @@ public:
 
     void setConnectedHandler(const mqtt::async_client::connection_handler &cb) const;
 
-    void setConnectioLostHandler(const mqtt::async_client::connection_handler &cb) const;
+    void setConnectionLostHandler(const mqtt::async_client::connection_handler &cb) const;
 
     void setDisconnectHandler(const mqtt::async_client::disconnected_handler &cb) const;
 

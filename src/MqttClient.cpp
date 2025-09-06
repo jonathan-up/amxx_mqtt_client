@@ -16,7 +16,7 @@ void MqttClient::setConnectedHandler(const mqtt::async_client::connection_handle
     this->m_pClient->set_connected_handler(cb);
 }
 
-void MqttClient::setConnectioLostHandler(const mqtt::async_client::connection_handler &cb) const {
+void MqttClient::setConnectionLostHandler(const mqtt::async_client::connection_handler &cb) const {
     this->m_pClient->set_connection_lost_handler(cb);
 }
 
