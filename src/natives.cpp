@@ -274,6 +274,37 @@ cell AMX_NATIVE_CALL mqtt_set_message_callback(AMX *amx, cell *params) {
     return 1;
 }
 
+cell AMX_NATIVE_CALL mqtt_set_connection_lost_callback(AMX *amx, cell *params) {
+    enum { arg_count, arg_handle, arg_callback };
+
+    // check args
+    if (ARG_COUNT < 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
+        return 0;
+    }
+
+    // check handle
+    AmxxMqttClient *client = g_mqttClientMgr.getClient(params[arg_handle]);
+    if (client == nullptr) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", params[arg_handle]);
+        return 0;
+    }
+
+    // get callback
+    const std::string callback{MF_GetAmxString(amx, params[arg_callback], arg_callback - 1, nullptr)};
+
+    // check callback
+    const int forwardId = MF_RegisterSPForwardByName(amx, callback.c_str(), FP_CELL, FP_STRING, FP_DONE);
+    if (forwardId == -1) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Callback function \"%s\" is not exists", callback.c_str());
+        return 0;
+    }
+
+    // set it
+    client->setOnConnectionLostForwardId(forwardId);
+    return 1;
+}
+
 AMX_NATIVE_INFO g_natives[] =
 {
     {"mqtt_create", mqtt_create},
@@ -285,5 +316,8 @@ AMX_NATIVE_INFO g_natives[] =
     {"mqtt_publish", mqtt_publish},
     {"mqtt_set_connected_callback", mqtt_set_connected_callback},
     {"mqtt_set_message_callback", mqtt_set_message_callback},
+    {"mqtt_set_connection_lost_callback", mqtt_set_connection_lost_callback},
+    // {"mqtt_set_disconnected_callback", mqtt_set_disconnected_callback},
+
     {nullptr, nullptr}
 };
