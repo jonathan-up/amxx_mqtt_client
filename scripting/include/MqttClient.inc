@@ -105,7 +105,7 @@ native bool:mqtt_is_connect(const MqttHandle:handle);
 /**
  * Subscribe topic
  *
- * @note It should check connect first but in `connected_callback` DON'T DO IT
+ * @note It should check connect first
  *
  * @param handle which client
  * @param topicName topic for subscribe
@@ -117,7 +117,7 @@ native mqtt_subscribe(const MqttHandle:handle, const topicName[]);
 /**
  * Unsubscribe topic
  *
- * @note It should check connect first but in `connected_callback` DON'T DO IT
+ * @note It should check connect first
  *
  * @param handle which client
  * @param topicName topic for unsubscribe
@@ -129,7 +129,7 @@ native mqtt_unsubscribe(const MqttHandle:handle, const topicName[]);
 /**
  * Publish message to topic
  *
- * @note It should check connect first but in `connected_callback` DON'T DO IT
+ * @note It should check connect first
  *
  * @param handle which client
  * @param topicName topic to publish
