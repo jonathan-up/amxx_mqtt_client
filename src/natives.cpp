@@ -23,8 +23,13 @@ cell AMX_NATIVE_CALL mqtt_create(AMX *amx, cell *params) {
     const std::string blocker{MF_GetAmxString(amx, params[arg_blocker], arg_blocker - 1, nullptr)};
     const std::string clientId{MF_GetAmxString(amx, params[arg_client_id], arg_client_id - 1, nullptr)};
 
-    // make it
-    return g_mqttClientMgr.make(blocker, clientId);
+    try {
+        // make it
+        return g_mqttClientMgr.make(blocker, clientId);
+    } catch (const mqtt::exception &err) {
+        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        return 0;
+    }
 }
 
 cell AMX_NATIVE_CALL mqtt_destroy(AMX *amx, cell *params) {
@@ -73,9 +78,14 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
         DisconnectedCallbackDispatcher(handle, code);
     });
 
-    // connect
-    client->connect();
-    return 1;
+    try {
+        // connect
+        client->connect();
+        return 1;
+    } catch (const mqtt::exception &err) {
+        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        return 0;
+    }
 }
 
 cell AMX_NATIVE_CALL mqtt_is_connect(AMX *amx, cell *params) {
@@ -121,10 +131,14 @@ cell AMX_NATIVE_CALL mqtt_subscribe(AMX *amx, cell *params) {
         return 0;
     }
 
-    // subscribe
-    client->subscribe(topicName.c_str());
-
-    return 1;
+    try {
+        // subscribe
+        client->subscribe(topicName.c_str());
+        return 1;
+    } catch (const mqtt::exception &err) {
+        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        return 0;
+    }
 }
 
 cell AMX_NATIVE_CALL mqtt_unsubscribe(AMX *amx, cell *params) {
@@ -150,10 +164,14 @@ cell AMX_NATIVE_CALL mqtt_unsubscribe(AMX *amx, cell *params) {
         return 0;
     }
 
-    // subscribe
-    client->unsubscribe(topicName);
-
-    return 1;
+    try {
+        // unsubscribe
+        client->unsubscribe(topicName);
+        return 1;
+    } catch (const mqtt::exception &err) {
+        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        return 0;
+    }
 }
 
 cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
@@ -182,8 +200,14 @@ cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
     // get data
     const std::string data{MF_GetAmxString(amx, params[arg_data], arg_data - 1, nullptr)};
 
-    // subscribe
-    client->publish(topicName, data);
+    try {
+        // publish
+        client->publish(topicName, data);
+        return 1;
+    } catch (const mqtt::exception &err) {
+        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        return 0;
+    }
 
     return 1;
 }
