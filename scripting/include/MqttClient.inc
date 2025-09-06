@@ -96,8 +96,6 @@ native mqtt_connect(const MqttHandle:handle);
 /**
  * Check client connection
  *
- * @note DO NOT CALL IT IN `connected_callback` !!!
- *
  * @param handle which client
  *
  * @return true for connected, false for otherwise
