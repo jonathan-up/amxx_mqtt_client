@@ -6,6 +6,7 @@
 #include "natives.h"
 
 #include "MqttClientMgr.h"
+#include "ConnectOptionMgr.h"
 
 void OnAmxxAttach() {
     MF_AddNatives(g_natives);
@@ -14,5 +15,6 @@ void OnAmxxAttach() {
 
 void OnAmxxDetach() {
     g_mqttClientMgr.reset();
+    g_connectOptionMgr.reset();
     MF_Log("==================OnAmxxDetach==================");
 }
