@@ -49,6 +49,8 @@ public:
 
     /**
      * Destroy all client
+     * Do not call this function in mqtt handler
+     * it will be deadlock
      */
     void reset();
 
