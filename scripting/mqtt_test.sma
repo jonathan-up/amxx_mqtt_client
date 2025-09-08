@@ -45,6 +45,11 @@ public cmd_connect()
     server_print("cmd_connect: %d", h);
 
     new MqttConnectOptions:opts = mqtt_create_connect_options();
+    mqtt_set_options(opts, MQTT_OPTION_NAMES_USERNAME, "cs_server");
+    mqtt_set_options(opts, MQTT_OPTION_NAMES_PASSWORD, "123123");
+    mqtt_set_options(opts, MQTT_OPTION_NAMES_SESSION_EXPIRY, 0);
+
+    server_print("opts: %d", opts);
 
     mqtt_connect(h, opts);
     mqtt_set_connected_callback(h, "on_connected");

@@ -12,14 +12,15 @@ ConnectOptionMgr::~ConnectOptionMgr() {
 
 int ConnectOptionMgr::make() {
     if (const int index = this->makeIndex(); index != 0) {
-        this->m_options[index] = new mqtt::connect_options{MQTTVERSION_5};
+        auto* co = new ConnectOption{new mqtt::connect_options{MQTTVERSION_5}, new mqtt::properties };
+        this->m_options[index] = co;
 
         return index;
     }
     return 0;
 }
 
-mqtt::connect_options *ConnectOptionMgr::getOptions(const int index) {
+ConnectOption *ConnectOptionMgr::getOptions(const int index) {
     return this->m_options[index];
 }
 

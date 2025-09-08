@@ -2,19 +2,19 @@
 // Created by jonathan on 9/2/25.
 //
 
-#ifndef CONNECT_OPTION_H
-#define CONNECT_OPTION_H
+#ifndef CONNECT_OPTION_MGR_H
+#define CONNECT_OPTION_MGR_H
 
 #include <unordered_map>
 #include <mutex>
 #include <set>
 
-#include <mqtt/connect_options.h>
+#include "ConnectOption.h"
 
 #define MAX_INDEX 10000
 
 class ConnectOptionMgr {
-    std::unordered_map<int, mqtt::connect_options *> m_options;
+    std::unordered_map<int, ConnectOption*> m_options;
     std::set<int> m_indexUsed;
     std::mutex m_mutex;
 
@@ -23,7 +23,7 @@ public:
 
     int make();
 
-    mqtt::connect_options *getOptions(int index);
+    ConnectOption *getOptions(int index);
 
     void destroy(int index);
 

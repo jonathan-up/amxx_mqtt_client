@@ -16,6 +16,11 @@ enum MqttConnectOptions
 {
     MqttConnectOptions_Invalid = 0
 }
+enum MqttConnectOptionNames {
+    MQTT_OPTION_NAMES_USERNAME,
+    MQTT_OPTION_NAMES_PASSWORD,
+    MQTT_OPTION_NAMES_SESSION_EXPIRY
+}
 
 enum MqttReasonCode {
     SUCCESS = 0,
@@ -205,3 +210,13 @@ native mqtt_set_disconnected_callback(const MqttHandle:handle, const callback[])
  * @return option handle, it must be using in function `mqtt_connect`
  */
 native MqttConnectOptions:mqtt_create_connect_options();
+
+/**
+ * Set session expire time
+ *
+ * @param options handle
+ * @param value unit sec
+ *
+ * @noreturn
+ */
+native mqtt_set_options(const MqttConnectOptions:options, MqttConnectOptionNames:name, any:...);

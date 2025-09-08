@@ -66,7 +66,7 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
         return 0;
     }
 
-    mqtt::connect_options_builder *builder = g_connectOptionMgr.getBuilder(optionsHandle);
+    ConnectOption *options = g_connectOptionMgr.getOptions(optionsHandle);
 
     // set handlers for client
     client->setConnectedHandler([handle](const MqttClient *, const std::string &) {
@@ -84,10 +84,11 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
 
     try {
         // connect
-        client->connect(builder->finalize());
+        client->connect(*options->getOption());
         g_connectOptionMgr.destroy(optionsHandle);
         return 1;
     } catch (const mqtt::exception &err) {
+        g_connectOptionMgr.destroy(optionsHandle);
         MF_LogError(amx, AMX_ERR_NATIVE, err.what());
         return 0;
     }
@@ -379,6 +380,52 @@ cell AMX_NATIVE_CALL mqtt_create_connect_options(AMX *amx, cell *) {
     }
 }
 
+enum MqttConnectOptionNames {
+    MQTT_OPTIONS_USERNAME,
+    MQTT_OPTIONS_PASSWORD,
+    MQTT_OPTIONS_SESSION_EXPIRY,
+};
+
+cell AMX_NATIVE_CALL mqtt_set_options(AMX *amx, cell *params) {
+    enum { arg_count, arg_options, arg_name, arg_value };
+
+    // check args
+    if (ARG_COUNT < 3) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
+        return 0;
+    }
+
+    // check options
+    const ConnectOption *options = g_connectOptionMgr.getOptions(params[arg_options]);
+    if (options == nullptr) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", params[arg_options]);
+        return 0;
+    }
+
+    switch (params[arg_name]) {
+        case MQTT_OPTIONS_USERNAME: {
+            const std::string value{MF_GetAmxString(amx, params[arg_value], arg_value - 1, nullptr)};
+            options->getOption()->set_user_name(value);
+            return 1;
+        }
+        case MQTT_OPTIONS_PASSWORD: {
+            const std::string value{MF_GetAmxString(amx, params[arg_value], arg_value - 1, nullptr)};
+            options->getOption()->set_password(value);
+            return 1;
+        }
+        case MQTT_OPTIONS_SESSION_EXPIRY: {
+            const cell *value = MF_GetAmxAddr(amx, params[arg_value]);
+            options->getProperties()->clear();
+            options->getProperties()->add({mqtt::property::SESSION_EXPIRY_INTERVAL, *value});
+            options->getOption()->set_properties(*options->getProperties());
+            return 1;
+        }
+        default:
+            MF_LogError(amx, AMX_ERR_NATIVE, "Invalid option name");
+            return 0;
+    }
+}
+
 AMX_NATIVE_INFO g_natives[] =
 {
     {"mqtt_create", mqtt_create},
@@ -395,5 +442,6 @@ AMX_NATIVE_INFO g_natives[] =
     {"mqtt_set_disconnected_callback", mqtt_set_disconnected_callback},
 
     {"mqtt_create_connect_options", mqtt_create_connect_options},
+    {"mqtt_set_options", mqtt_set_options},
     {nullptr, nullptr}
 };
