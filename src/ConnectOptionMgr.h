@@ -23,7 +23,7 @@ public:
 
     int make();
 
-    mqtt::connect_options_builder *getOption(int index);
+    mqtt::connect_options_builder *getBuilder(int index);
 
     void destroy(int index);
 

@@ -18,7 +18,7 @@ int ConnectOptionMgr::make() {
     return 0;
 }
 
-mqtt::connect_options_builder *ConnectOptionMgr::getOption(const int index) {
+mqtt::connect_options_builder *ConnectOptionMgr::getBuilder(const int index) {
     return this->m_builder[index];
 }
 
