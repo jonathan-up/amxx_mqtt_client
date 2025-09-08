@@ -5,38 +5,39 @@
 #include "ConnectOptionMgr.h"
 
 ConnectOptionMgr::~ConnectOptionMgr() {
-    for (auto &[k, v]: this->m_builder) {
+    for (auto &[k, v]: this->m_options) {
         delete v;
     }
 }
 
 int ConnectOptionMgr::make() {
     if (const int index = this->makeIndex(); index != 0) {
-        this->m_builder[index] = new mqtt::connect_options_builder{mqtt::connect_options::v5()};
+        this->m_options[index] = new mqtt::connect_options{MQTTVERSION_5};
+
         return index;
     }
     return 0;
 }
 
-mqtt::connect_options_builder *ConnectOptionMgr::getBuilder(const int index) {
-    return this->m_builder[index];
+mqtt::connect_options *ConnectOptionMgr::getOptions(const int index) {
+    return this->m_options[index];
 }
 
 void ConnectOptionMgr::destroy(const int index) {
-    if (const auto it = this->m_builder.find(index); it != m_builder.end()) {
+    if (const auto it = this->m_options.find(index); it != this->m_options.end()) {
         delete it->second;
         this->m_indexUsed.erase(it->first);
-        this->m_builder.erase(it);
+        this->m_options.erase(it);
     }
 }
 
 void ConnectOptionMgr::reset() {
-    for (auto &[k, v]: this->m_builder) {
+    for (auto &[k, v]: this->m_options) {
         delete v;
     }
 
     this->m_indexUsed.clear();
-    this->m_builder.clear();
+    this->m_options.clear();
 }
 
 int ConnectOptionMgr::makeIndex() {

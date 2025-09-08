@@ -14,7 +14,7 @@
 #define MAX_INDEX 10000
 
 class ConnectOptionMgr {
-    std::unordered_map<int, mqtt::connect_options_builder *> m_builder;
+    std::unordered_map<int, mqtt::connect_options *> m_options;
     std::set<int> m_indexUsed;
     std::mutex m_mutex;
 
@@ -23,7 +23,7 @@ public:
 
     int make();
 
-    mqtt::connect_options_builder *getBuilder(int index);
+    mqtt::connect_options *getOptions(int index);
 
     void destroy(int index);
 
