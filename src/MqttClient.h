@@ -41,6 +41,7 @@ public:
     void setDisconnectHandler(const DisconnectedHandler &handler);
 
     void connect();
+    void connect(const mqtt::connect_options& options);
     void disconnect() const;
 
     void subscribe(const char *topicName, int qos = 0) const;

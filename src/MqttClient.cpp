@@ -38,11 +38,14 @@ void MqttClient::setDisconnectHandler(const DisconnectedHandler &handler) {
 
 void MqttClient::connect() {
     const auto opts = mqtt::connect_options_builder::v5()
-            .properties({{mqtt::property::SESSION_EXPIRY_INTERVAL, 604800}})
             .clean_start(true)
             .keep_alive_interval(std::chrono::seconds(20))
             .finalize();
 
+    this->connect(opts);
+}
+
+void MqttClient::connect(const mqtt::connect_options &options) {
     // On connected
     this->m_pClient->set_connected_handler([this](const mqtt::string &msg) {
         this->m_bIsConnected = true;
@@ -74,7 +77,7 @@ void MqttClient::connect() {
         }
     });
 
-    this->m_pClient->connect(opts);
+    this->m_pClient->connect(options);
 }
 
 void MqttClient::disconnect() const {
