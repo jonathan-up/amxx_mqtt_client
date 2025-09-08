@@ -12,7 +12,7 @@ ConnectOptionMgr::~ConnectOptionMgr() {
 
 int ConnectOptionMgr::make() {
     if (const int index = this->makeIndex(); index != 0) {
-        this->m_builder[index] = new mqtt::connect_options_builder{};
+        this->m_builder[index] = new mqtt::connect_options_builder{mqtt::connect_options::v5()};
         return index;
     }
     return 0;
