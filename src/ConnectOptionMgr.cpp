@@ -48,7 +48,7 @@ int ConnectOptionMgr::makeIndex() {
         }
     }
 
-    return 0;
+    throw mqtt::exception{0, "no index anymore"};
 }
 
 ConnectOptionMgr g_connectOptionMgr;

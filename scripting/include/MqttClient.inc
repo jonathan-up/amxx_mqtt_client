@@ -12,6 +12,10 @@ enum MqttHandle
 {
     MqttHandle_Invalid = 0
 }
+enum MqttConnectOptions
+{
+    MqttConnectOptions_Invalid = 0
+}
 
 enum MqttReasonCode {
     SUCCESS = 0,
@@ -91,7 +95,7 @@ native mqtt_destroy(const MqttHandle:handle);
  *
  * @noreturn
  */
-native mqtt_connect(const MqttHandle:handle);
+native mqtt_connect(const MqttHandle:handle, const MqttConnectOptions:options);
 
 /**
  * Disconnect from blocker
@@ -194,3 +198,10 @@ native mqtt_set_connection_lost_callback(const MqttHandle:handle, const callback
  * @noreturn
  */
 native mqtt_set_disconnected_callback(const MqttHandle:handle, const callback[]);
+
+/**
+ * Create connect options
+ * 
+ * @return option handle, it must be using in function `mqtt_connect`
+ */
+native MqttConnectOptions:mqtt_create_connect_options();

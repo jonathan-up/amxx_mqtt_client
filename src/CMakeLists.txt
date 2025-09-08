@@ -8,6 +8,7 @@ add_library(amxx_mqtt_client SHARED
     MqttClient.cpp
     AmxxMqttClient.cpp
     MqttClientMgr.cpp
+    ConnectOptionMgr.cpp
 )
 
 include(../flags.cmake)

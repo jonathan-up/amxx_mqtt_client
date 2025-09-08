@@ -44,7 +44,9 @@ public cmd_connect()
 
     server_print("cmd_connect: %d", h);
 
-    mqtt_connect(h);
+    new MqttConnectOptions:opts = mqtt_create_connect_options();
+
+    mqtt_connect(h, opts);
     mqtt_set_connected_callback(h, "on_connected");
     mqtt_set_message_callback(h, "on_message");
     mqtt_set_connection_lost_callback(h, "on_connection_lost");

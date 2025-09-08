@@ -6,6 +6,7 @@
 #include "natives.h"
 
 #include "MqttClientMgr.h"
+#include "ConnectOptionMgr.h"
 #include "CallbackDispatcher.h"
 
 #define ARG_COUNT (params[0] / sizeof(cell))
@@ -47,15 +48,16 @@ cell AMX_NATIVE_CALL mqtt_destroy(AMX *amx, cell *params) {
 }
 
 cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
-    enum { arg_count, arg_handle };
+    enum { arg_count, arg_handle, arg_options };
 
     // check args
-    if (ARG_COUNT < 1) {
+    if (ARG_COUNT < 2) {
         MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s, the inc file incorrect?", __FUNCTION__);
         return 0;
     }
 
     const int handle = params[arg_handle];
+    const int optionsHandle = params[arg_options];
 
     // check handle
     AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
@@ -63,6 +65,8 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
         MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", handle);
         return 0;
     }
+
+    mqtt::connect_options_builder *builder = g_connectOptionMgr.getBuilder(optionsHandle);
 
     // set handlers for client
     client->setConnectedHandler([handle](const MqttClient *, const std::string &) {
@@ -80,7 +84,8 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
 
     try {
         // connect
-        client->connect();
+        client->connect(builder->finalize());
+        g_connectOptionMgr.destroy(optionsHandle);
         return 1;
     } catch (const mqtt::exception &err) {
         MF_LogError(amx, AMX_ERR_NATIVE, err.what());
@@ -364,6 +369,16 @@ cell AMX_NATIVE_CALL mqtt_set_disconnected_callback(AMX *amx, cell *params) {
     return 1;
 }
 
+cell AMX_NATIVE_CALL mqtt_create_connect_options(AMX *amx, cell *) {
+    // no args
+    try {
+        return g_connectOptionMgr.make();
+    } catch (const mqtt::exception &err) {
+        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        return 0;
+    }
+}
+
 AMX_NATIVE_INFO g_natives[] =
 {
     {"mqtt_create", mqtt_create},
@@ -378,5 +393,7 @@ AMX_NATIVE_INFO g_natives[] =
     {"mqtt_set_message_callback", mqtt_set_message_callback},
     {"mqtt_set_connection_lost_callback", mqtt_set_connection_lost_callback},
     {"mqtt_set_disconnected_callback", mqtt_set_disconnected_callback},
+
+    {"mqtt_create_connect_options", mqtt_create_connect_options},
     {nullptr, nullptr}
 };
