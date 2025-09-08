@@ -4,6 +4,8 @@
 
 #include "MqttClient.h"
 
+#include <thread>
+
 MqttClient::MqttClient(const std::string &blocker, const std::string &client) {
     this->m_pClient = new mqtt::async_client(blocker, client);
     this->m_bIsConnected = false;
@@ -76,7 +78,16 @@ void MqttClient::connect() {
 }
 
 void MqttClient::disconnect() const {
-    this->m_pClient->disconnect();
+    mqtt::token_ptr token = this->m_pClient->disconnect();
+
+    std::thread asyncCall{
+        [token, this] {
+            token->wait();
+            const mqtt::properties p;
+            this->m_disconnectedHandler(this, p, mqtt::NORMAL_DISCONNECTION);
+        }
+    };
+    asyncCall.detach();
 }
 
 void MqttClient::subscribe(const char *topicName, const int qos) const {
