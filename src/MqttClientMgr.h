@@ -47,6 +47,11 @@ public:
      */
     void destroy(int index);
 
+    /**
+     * Destroy all client
+     */
+    void reset();
+
 private:
     /**
      * make an index for mqtt client on making mqtt client

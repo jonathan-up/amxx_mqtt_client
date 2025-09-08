@@ -30,6 +30,15 @@ void MqttClientMgr::destroy(const int index) {
     }
 }
 
+void MqttClientMgr::reset() {
+    for (auto& [k, v] : this->m_clients) {
+        delete v;
+    }
+
+    this->m_indexUsed.clear();
+    this->m_clients.clear();
+}
+
 int MqttClientMgr::makeIndex() {
     std::lock_guard lock(this->m_mutex);
     for (int i = 1; i <= MAX_INDEX; i++) {
