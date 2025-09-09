@@ -17,9 +17,33 @@ enum MqttConnectOptions
     MqttConnectOptions_Invalid = 0
 }
 enum MqttConnectOptionNames {
+    /**
+     * Set username
+     * @type string
+     * mqtt_set_options(opts, MQTT_OPTION_NAMES_USERNAME, "H0meV");
+     */
     MQTT_OPTION_NAMES_USERNAME,
+
+    /**
+     * Set password
+     * @type string
+     * mqtt_set_options(opts, MQTT_OPTION_NAMES_PASSWORD, "123123");
+     */
     MQTT_OPTION_NAMES_PASSWORD,
-    MQTT_OPTION_NAMES_SESSION_EXPIRY
+
+    /**
+     * Set clean start
+     * @type boolean
+     * mqtt_set_options(opts, MQTT_OPTIONS_CLEAN_START, true);
+     */
+    MQTT_OPTIONS_CLEAN_START,
+
+    /**
+     * Set session expiry interval
+     * @type number
+     * mqtt_set_options(opts, MQTT_OPTION_NAMES_SESSION_EXPIRY, 60*60*24);
+     */
+    MQTT_OPTION_NAMES_SESSION_EXPIRY,
 }
 
 enum MqttReasonCode {

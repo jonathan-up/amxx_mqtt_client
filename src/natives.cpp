@@ -383,6 +383,7 @@ cell AMX_NATIVE_CALL mqtt_create_connect_options(AMX *amx, cell *) {
 enum MqttConnectOptionNames {
     MQTT_OPTIONS_USERNAME,
     MQTT_OPTIONS_PASSWORD,
+    MQTT_OPTIONS_CLEAN_START,
     MQTT_OPTIONS_SESSION_EXPIRY,
 };
 
@@ -411,6 +412,11 @@ cell AMX_NATIVE_CALL mqtt_set_options(AMX *amx, cell *params) {
         case MQTT_OPTIONS_PASSWORD: {
             const std::string value{MF_GetAmxString(amx, params[arg_value], arg_value - 1, nullptr)};
             options->getOption()->set_password(value);
+            return 1;
+        }
+        case MQTT_OPTIONS_CLEAN_START: {
+            const cell *value = MF_GetAmxAddr(amx, params[arg_value]);
+            options->getOption()->set_clean_start(*value > 0);
             return 1;
         }
         case MQTT_OPTIONS_SESSION_EXPIRY: {
