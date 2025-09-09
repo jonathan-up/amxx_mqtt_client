@@ -48,7 +48,7 @@ public cmd_connect()
     mqtt_set_options(opts, MQTT_OPTION_NAMES_USERNAME, "cs_server");
     mqtt_set_options(opts, MQTT_OPTION_NAMES_PASSWORD, "123123");
     mqtt_set_options(opts, MQTT_OPTIONS_CLEAN_START, false);
-    mqtt_set_options(opts, MQTT_OPTION_NAMES_SESSION_EXPIRY, 60*60*24*30);
+    mqtt_set_options(opts, MQTT_OPTION_NAMES_SESSION_EXPIRY, 30 /**60*60*24*30**/);
 
     server_print("opts: %d", opts);
 

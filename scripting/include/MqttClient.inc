@@ -33,6 +33,7 @@ enum MqttConnectOptionNames {
 
     /**
      * Set clean start
+     * @note you must give a client id not empty on creating client
      * @type boolean
      * mqtt_set_options(opts, MQTT_OPTIONS_CLEAN_START, true);
      */
