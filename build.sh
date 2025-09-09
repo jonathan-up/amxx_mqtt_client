@@ -5,6 +5,7 @@ mkdir $TARGET_DIR && cd $TARGET_DIR
 cmake .. \
       -DPAHO_WITH_MQTT_C=TRUE \
       -DPAHO_BUILD_STATIC=TRUE \
+      -DPAHO_WITH_SSL=FALSE \
       -DPAHO_ENABLE_TESTING=FALSE
 
 make -j8
