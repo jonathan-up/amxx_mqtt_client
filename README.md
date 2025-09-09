@@ -1,11 +1,11 @@
-# AmxxMqttClient
+AmxxMqttClient
 -------
 A mqtt client module for AmxModx
 
 Example
 -------
-```c
 
+```c
 #include <amxmodx>
 #include "include/MqttClient"
 
@@ -168,6 +168,29 @@ public on_disconnected(const MqttHandle:h, const MqttReasonCode:reasonCode)
 {
     server_print("%d -> disconnected: %d",h , reasonCode);
 }
-
-
 ```
+
+Building
+-------
+Linux
+-------
+```shell
+mkdir builda && cd builda
+cmake .. \
+      -DPAHO_WITH_MQTT_C=TRUE \
+      -DPAHO_BUILD_STATIC=TRUE \
+      -DPAHO_WITH_SSL=FALSE \
+      -DPAHO_ENABLE_TESTING=FALSE
+
+make -j8
+```
+
+Or
+
+```shell
+./build.sh
+```
+
+Windows
+-------
+No supports yet
