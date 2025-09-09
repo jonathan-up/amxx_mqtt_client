@@ -1,4 +1,4 @@
-TARGET_DIR="build"
+TARGET_DIR="build_sh"
 
 rm -rf $TARGET_DIR
 mkdir $TARGET_DIR && cd $TARGET_DIR
