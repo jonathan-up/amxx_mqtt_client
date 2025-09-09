@@ -18,10 +18,5 @@ include_directories(
 #Global definitions
 add_compile_definitions()
 
-set(PAHO_WITH_MQTT_C TRUE)
-set(PAHO_BUILD_STATIC TRUE)
-set(PAHO_ENABLE_TESTING FALSE)
-set(PAHO_WITH_SSL FALSE)
 add_subdirectory(dep/mqtt-cpp)
-
 add_subdirectory(src)
