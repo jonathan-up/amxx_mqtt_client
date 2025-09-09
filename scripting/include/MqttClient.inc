@@ -12,6 +12,39 @@ enum MqttHandle
 {
     MqttHandle_Invalid = 0
 }
+enum MqttConnectOptions
+{
+    MqttConnectOptions_Invalid = 0
+}
+enum MqttConnectOptionNames {
+    /**
+     * Set username
+     * @type string
+     * mqtt_set_options(opts, MQTT_OPTION_NAMES_USERNAME, "H0meV");
+     */
+    MQTT_OPTION_NAMES_USERNAME,
+
+    /**
+     * Set password
+     * @type string
+     * mqtt_set_options(opts, MQTT_OPTION_NAMES_PASSWORD, "123123");
+     */
+    MQTT_OPTION_NAMES_PASSWORD,
+
+    /**
+     * Set clean start
+     * @type boolean
+     * mqtt_set_options(opts, MQTT_OPTIONS_CLEAN_START, true);
+     */
+    MQTT_OPTIONS_CLEAN_START,
+
+    /**
+     * Set session expiry interval
+     * @type number
+     * mqtt_set_options(opts, MQTT_OPTION_NAMES_SESSION_EXPIRY, 60*60*24);
+     */
+    MQTT_OPTION_NAMES_SESSION_EXPIRY,
+}
 
 enum MqttReasonCode {
     SUCCESS = 0,
@@ -91,7 +124,7 @@ native mqtt_destroy(const MqttHandle:handle);
  *
  * @noreturn
  */
-native mqtt_connect(const MqttHandle:handle);
+native mqtt_connect(const MqttHandle:handle, const MqttConnectOptions:options);
 
 /**
  * Disconnect from blocker
@@ -194,3 +227,20 @@ native mqtt_set_connection_lost_callback(const MqttHandle:handle, const callback
  * @noreturn
  */
 native mqtt_set_disconnected_callback(const MqttHandle:handle, const callback[]);
+
+/**
+ * Create connect options
+ * 
+ * @return option handle, it must be using in function `mqtt_connect`
+ */
+native MqttConnectOptions:mqtt_create_connect_options();
+
+/**
+ * Set session expire time
+ *
+ * @param options handle
+ * @param value unit sec
+ *
+ * @noreturn
+ */
+native mqtt_set_options(const MqttConnectOptions:options, MqttConnectOptionNames:name, any:...);
