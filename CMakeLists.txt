@@ -1,22 +1,38 @@
-cmake_minimum_required(VERSION 3.30)
-project(amxx_mqtt_client)
+cmake_minimum_required(VERSION 3.20)
+
+# CMake policy
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0117 NEW)
+
+project(amxx_mqtt_client LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32")
-set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -m32")
+# Compiler check
+if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+    message(FATAL_ERROR "Unsupported compiler: ${CMAKE_CXX_COMPILER_ID}. Only GCC and MSVC are supported.")
+endif()
 
-# Global include directories
-include_directories(
-    ${PROJECT_SOURCE_DIR}
-    ${PROJECT_SOURCE_DIR}/dep/include
-)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    set(AMXX_MQTT_GNU ON)
+endif()
 
-#Global definitions
-add_compile_definitions()
+if(MSVC)
+    set(AMXX_MQTT_MSVC ON)
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
+
+# GCC specific settings
+if(AMXX_MQTT_GNU)
+    add_compile_options(-m32)
+    add_link_options(-m32 -static-libstdc++ -static-libgcc)
+endif()
+
+# MSVC specific settings
+if(AMXX_MQTT_MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(WARNING "AMXX modules are 32-bit native libraries. Use a 32-bit MSVC toolchain, e.g. cmake -G \"Visual Studio 17 2022\" -A Win32 ...")
+endif()
 
 add_subdirectory(dep/mqtt-cpp)
 add_subdirectory(src)

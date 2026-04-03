@@ -1,19 +1,16 @@
-SET(COMPILE_FLAGS "-m32 -U_FORTIFY_SOURCE")
-SET(LINK_FLAGS "-m32 -s -static-libstdc++ -static-libgcc")
+# Extra compile flags for GCC (AmxxEasyHttp-style). Root CMakeLists already applies -m32 and static libgcc/libstdc++.
+set(COMPILE_FLAGS "-U_FORTIFY_SOURCE")
 
-# 构建编译参数
-SET(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -fno-builtin -Wno-unknown-pragmas")
-SET(COMPILE_FLAGS "${COMPILE_FLAGS} -ffunction-sections -fdata-sections")
-SET(COMPILE_FLAGS "${COMPILE_FLAGS} -mtune=generic -msse3 -fno-sized-deallocation -Wno-strict-aliasing")
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -Wall -fno-builtin -Wno-unknown-pragmas")
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -ffunction-sections -fdata-sections")
+set(COMPILE_FLAGS "${COMPILE_FLAGS} -mtune=generic -msse3 -fno-sized-deallocation -Wno-strict-aliasing")
 
-# GCC >= 8.3
-IF (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
-    SET(COMPILE_FLAGS "${COMPILE_FLAGS} -fcf-protection=none")
-ENDIF ()
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 8.0)
+    set(COMPILE_FLAGS "${COMPILE_FLAGS} -fcf-protection=none")
+endif()
 
-# DEBUG 参数
-IF (DEBUG)
-    SET(COMPILE_FLAGS "${COMPILE_FLAGS} -g3 -O3 -ggdb")
-ELSE ()
-    SET(COMPILE_FLAGS "${COMPILE_FLAGS} -g0 -O3 -fno-stack-protector")
-ENDIF ()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(COMPILE_FLAGS "${COMPILE_FLAGS} -g3 -O3 -ggdb")
+else()
+    set(COMPILE_FLAGS "${COMPILE_FLAGS} -g0 -O3 -fno-stack-protector")
+endif()
