@@ -34,5 +34,8 @@ if(AMXX_MQTT_MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
     message(WARNING "AMXX modules are 32-bit native libraries. Use a 32-bit MSVC toolchain, e.g. cmake -G \"Visual Studio 17 2022\" -A Win32 ...")
 endif()
 
+set(PAHO_WITH_MQTT_C ON CACHE BOOL "Build Paho C from dep/mqtt-cpp/externals/paho-mqtt-c")
+set(PAHO_BUILD_STATIC ON CACHE BOOL "Build static Paho MQTT C++ library")
+
 add_subdirectory(dep/mqtt-cpp)
 add_subdirectory(src)
