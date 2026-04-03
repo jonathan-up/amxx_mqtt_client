@@ -21,6 +21,7 @@ endif()
 if(MSVC)
     set(AMXX_MQTT_MSVC ON)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    add_compile_options(/wd4819)
 endif()
 
 # GCC specific settings
