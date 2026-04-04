@@ -18,6 +18,9 @@ void ConnectedCallbackDispatcher(const int handle) {
 
     // Call forwards if exists
     const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    if (client == nullptr) {
+        return;
+    }
     if (const int forwardId = client->getOnConnectedForwardId(); forwardId != -1) {
         MF_ExecuteForward(forwardId, handle);
     }
@@ -28,6 +31,10 @@ void MessageCallbackDispatcher(const int handle, const mqtt::const_message_ptr &
 
     // Call forwards if exists
     const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    if (client == nullptr) {
+        g_mqttClientMgr.destroy(handle);
+        return;
+    }
     if (const int forwardId = client->getOnMessageForwardId(); forwardId != -1) {
         const std::string payload = msg->get_payload_str();
         MF_ExecuteForward(forwardId, handle, payload.c_str());
@@ -39,6 +46,9 @@ void ConnectionLostCallbackDispatcher(const int handle, const std::string &reaso
 
     // Call forwards
     const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    if (client == nullptr) {
+        return;
+    }
     if (const int forwardId = client->getOnConnectionLostForwardId(); forwardId != -1) {
         MF_ExecuteForward(forwardId, handle, reason.c_str());
     }
@@ -49,6 +59,9 @@ void DisconnectedCallbackDispatcher(const int handle, mqtt::ReasonCode reasonCod
 
     // Call forwards
     const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    if (client == nullptr) {
+        return;
+    }
     if (const int forwardId = client->getDisconnectForwardId(); forwardId != -1) {
         MF_ExecuteForward(forwardId, handle, reasonCode);
     }

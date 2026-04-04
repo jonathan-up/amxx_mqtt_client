@@ -67,6 +67,10 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
     }
 
     ConnectOption *options = g_connectOptionMgr.getOptions(optionsHandle);
+    if (options == nullptr) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt connect options handle: %d", optionsHandle);
+        return 0;
+    }
 
     // set handlers for client
     client->setConnectedHandler([handle](const MqttClient *, const std::string &) {
@@ -399,7 +403,7 @@ cell AMX_NATIVE_CALL mqtt_set_options(AMX *amx, cell *params) {
     // check options
     const ConnectOption *options = g_connectOptionMgr.getOptions(params[arg_options]);
     if (options == nullptr) {
-        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", params[arg_options]);
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt connect options handle: %d", params[arg_options]);
         return 0;
     }
 
