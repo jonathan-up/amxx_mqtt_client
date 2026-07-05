@@ -81,13 +81,39 @@ void MqttClient::connect(const mqtt::connect_options &options) {
 }
 
 void MqttClient::disconnect() const {
-    mqtt::token_ptr token = this->m_pClient->disconnect();
+    mqtt::token_ptr token;
+    try {
+        token = this->m_pClient->disconnect();
+    } catch (const mqtt::exception &) {
+        // Already disconnected / disconnect failed synchronously.
+        token = nullptr;
+    }
+
+    // Copy the handler by value so the detached thread never dereferences
+    // `this`: on map change the client can be deleted (OnAmxxDetach -> reset)
+    // while this thread is still waiting on the token. The handler captures
+    // its handle and routes through the manager-checked dispatcher, so it is
+    // safe on its own.
+    const DisconnectedHandler handler = this->m_disconnectedHandler;
 
     std::thread asyncCall{
-        [token, this] {
-            token->wait();
-            const mqtt::properties p;
-            this->m_disconnectedHandler(this, p, mqtt::NORMAL_DISCONNECTION);
+        [token, handler] {
+            // token->wait() throws mqtt::exception (e.g. -11
+            // OPERATION_INCOMPLETE) when the disconnect cannot complete.
+            // This runs in a detached thread, so an uncaught exception would
+            // call std::terminate and abort the whole server.
+            try {
+                if (token) {
+                    token->wait();
+                }
+            } catch (const mqtt::exception &) {
+                // Ignore: notify the handler regardless below.
+            }
+
+            if (handler != nullptr) {
+                const mqtt::properties p;
+                handler(nullptr, p, mqtt::NORMAL_DISCONNECTION);
+            }
         }
     };
     asyncCall.detach();
@@ -101,9 +127,10 @@ void MqttClient::unsubscribe(const std::string &topicName) const {
     this->m_pClient->unsubscribe(topicName);
 }
 
-void MqttClient::publish(const std::string &topicName, const std::string &payload, const int qos) const {
+void MqttClient::publish(const std::string &topicName, const std::string &payload, const int qos, const bool retained) const {
     const mqtt::message_ptr msg = mqtt::make_message(topicName, payload);
     msg->set_qos(qos);
+    msg->set_retained(retained);
     this->m_pClient->publish(msg);
 }
 
