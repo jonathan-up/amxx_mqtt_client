@@ -48,7 +48,7 @@ public:
 
     void unsubscribe(const std::string &topicName) const;
 
-    void publish(const std::string &topicName, const std::string &payload, int qos = 0) const;
+    void publish(const std::string &topicName, const std::string &payload, int qos = 0, bool retained = false) const;
 
     [[nodiscard]] bool isConnected() const;
 

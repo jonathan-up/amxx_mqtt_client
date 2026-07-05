@@ -176,10 +176,12 @@ native mqtt_unsubscribe(const MqttHandle:handle, const topicName[]);
  *
  * @param handle which client
  * @param topicName topic to publish
+ * @param data payload string
+ * @param retained if true, broker stores the last message for new subscribers
  *
  * @noreturn
  */
-native mqtt_publish(const MqttHandle:handle, const topicName[], const data[]);
+native mqtt_publish(const MqttHandle:handle, const topicName[], const data[], bool:retained = false);
 
 /**
  * The `callback` will be called when client connected

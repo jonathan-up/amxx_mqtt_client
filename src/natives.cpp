@@ -213,7 +213,7 @@ cell AMX_NATIVE_CALL mqtt_unsubscribe(AMX *amx, cell *params) {
 }
 
 cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
-    enum { arg_count, arg_handle, arg_topic, arg_data };
+    enum { arg_count, arg_handle, arg_topic, arg_data, arg_retained };
 
     // check args
     if (ARG_COUNT < 3) {
@@ -238,16 +238,17 @@ cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
     // get data
     const std::string data{MF_GetAmxString(amx, params[arg_data], arg_data - 1, nullptr)};
 
+    // get retained flag (optional, defaults to false)
+    const bool retained = (ARG_COUNT >= 4) ? (params[arg_retained] != 0) : false;
+
     try {
         // publish
-        client->publish(topicName, data);
+        client->publish(topicName, data, 0, retained);
         return 1;
     } catch (const mqtt::exception &err) {
         MF_LogError(amx, AMX_ERR_NATIVE, err.what());
         return 0;
     }
-
-    return 1;
 }
 
 cell AMX_NATIVE_CALL mqtt_set_connected_callback(AMX *amx, cell *params) {
