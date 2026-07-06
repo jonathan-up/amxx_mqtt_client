@@ -6,9 +6,6 @@ set(CMAKE_POLICY_DEFAULT_CMP0117 NEW)
 
 project(amxx_mqtt_client LANGUAGES CXX)
 
-# Force all runtime targets (DLL/SO) into the build root, regardless of generator or source-directory layout
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 

@@ -22,6 +22,7 @@ set_target_properties(amxx_mqtt_client PROPERTIES
     PREFIX ""
     OUTPUT_NAME "mqtt_client_amxx$<$<BOOL:${UNIX}>:_i386>"
     PDB_NAME amxx_mqtt_client
+    RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
 if(AMXX_MQTT_GNU)
