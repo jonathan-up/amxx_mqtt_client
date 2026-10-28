@@ -4,65 +4,115 @@
 
 #include "CallbackDispatcher.h"
 
+#include <algorithm>
+#include <deque>
 #include <mutex>
+#include <utility>
 #include "sdk/amxxmodule.h"
 #include "MqttClientMgr.h"
 
-static std::mutex mutex_connected;
-static std::mutex mutex_message;
-static std::mutex mutex_connection_lost;
-static std::mutex mutex_disconnected;
+namespace {
+enum class CallbackType { Connected, Message, ConnectionLost, Disconnected };
 
-void ConnectedCallbackDispatcher(const int handle) {
-    std::lock_guard lock(mutex_connected);
+struct CallbackEvent {
+    CallbackType type;
+    int handle;
+    std::string text;
+    mqtt::ReasonCode reasonCode = mqtt::NORMAL_DISCONNECTION;
+};
 
-    // Call forwards if exists
-    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+std::mutex callbackMutex;
+std::deque<CallbackEvent> pendingCallbacks;
+bool acceptingCallbacks = false;
+constexpr size_t maxCallbacksPerFrame = 256;
+
+void EnqueueCallback(CallbackEvent event) {
+    std::lock_guard lock(callbackMutex);
+    if (acceptingCallbacks) {
+        pendingCallbacks.push_back(std::move(event));
+    }
+}
+
+void ExecuteCallback(const CallbackEvent &event) {
+    // Resolve the forward only on the game thread, immediately before use.
+    const AmxxMqttClient *client = g_mqttClientMgr.getClient(event.handle);
     if (client == nullptr) {
         return;
     }
-    if (const int forwardId = client->getOnConnectedForwardId(); forwardId != -1) {
-        MF_ExecuteForward(forwardId, handle);
+
+    switch (event.type) {
+        case CallbackType::Connected:
+            if (const int id = client->getOnConnectedForwardId(); id != -1) {
+                MF_ExecuteForward(id, event.handle);
+            }
+            break;
+        case CallbackType::Message:
+            if (const int id = client->getOnMessageForwardId(); id != -1) {
+                MF_ExecuteForward(id, event.handle, event.text.c_str());
+            }
+            break;
+        case CallbackType::ConnectionLost:
+            if (const int id = client->getOnConnectionLostForwardId(); id != -1) {
+                MF_ExecuteForward(id, event.handle, event.text.c_str());
+            }
+            break;
+        case CallbackType::Disconnected:
+            if (const int id = client->getDisconnectForwardId(); id != -1) {
+                MF_ExecuteForward(id, event.handle, event.reasonCode);
+            }
+            break;
     }
+}
+} // namespace
+
+void ConnectedCallbackDispatcher(const int handle) {
+    EnqueueCallback({CallbackType::Connected, handle, {}});
 }
 
 void MessageCallbackDispatcher(const int handle, const mqtt::const_message_ptr &msg) {
-    std::lock_guard lock(mutex_message);
-
-    // Call forwards if exists
-    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
-    if (client == nullptr) {
-        g_mqttClientMgr.destroy(handle);
-        return;
-    }
-    if (const int forwardId = client->getOnMessageForwardId(); forwardId != -1) {
-        const std::string payload = msg->get_payload_str();
-        MF_ExecuteForward(forwardId, handle, payload.c_str());
-    }
+    EnqueueCallback({CallbackType::Message, handle, msg->get_payload_str()});
 }
 
 void ConnectionLostCallbackDispatcher(const int handle, const std::string &reason) {
-    std::lock_guard lock(mutex_connection_lost);
-
-    // Call forwards
-    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
-    if (client == nullptr) {
-        return;
-    }
-    if (const int forwardId = client->getOnConnectionLostForwardId(); forwardId != -1) {
-        MF_ExecuteForward(forwardId, handle, reason.c_str());
-    }
+    EnqueueCallback({CallbackType::ConnectionLost, handle, reason});
 }
 
-void DisconnectedCallbackDispatcher(const int handle, mqtt::ReasonCode reasonCode) {
-    std::lock_guard lock(mutex_disconnected);
+void DisconnectedCallbackDispatcher(const int handle, const mqtt::ReasonCode reasonCode) {
+    EnqueueCallback({CallbackType::Disconnected, handle, {}, reasonCode});
+}
 
-    // Call forwards
-    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
-    if (client == nullptr) {
-        return;
+void StartCallbackDispatcher() {
+    std::lock_guard lock(callbackMutex);
+    acceptingCallbacks = true;
+}
+
+void StopCallbackDispatcher() {
+    std::lock_guard lock(callbackMutex);
+    acceptingCallbacks = false;
+    pendingCallbacks.clear();
+}
+
+void ProcessPendingCallbacks() {
+    size_t remaining;
+    {
+        std::lock_guard lock(callbackMutex);
+        remaining = std::min(pendingCallbacks.size(), maxCallbacksPerFrame);
     }
-    if (const int forwardId = client->getDisconnectForwardId(); forwardId != -1) {
-        MF_ExecuteForward(forwardId, handle, reasonCode);
+
+    // Bound the work per frame. Newly produced events cannot extend this batch.
+    while (remaining-- > 0) {
+        CallbackEvent event;
+        {
+            std::lock_guard lock(callbackMutex);
+            if (!acceptingCallbacks || pendingCallbacks.empty()) {
+                return;
+            }
+            event = std::move(pendingCallbacks.front());
+            pendingCallbacks.pop_front();
+        }
+
+        // Never hold the queue lock while running Pawn: a callback can invoke
+        // MQTT natives, destroy a client, or trigger plugin shutdown.
+        ExecuteCallback(event);
     }
 }

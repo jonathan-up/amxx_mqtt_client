@@ -50,10 +50,13 @@ jobs:
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
-        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} ${{ matrix.cmake_args }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }} -DAMXX_MQTT_BUILD_TESTS=ON ${{ matrix.cmake_args }}
 
       - name: Build
         run: cmake --build build --config ${{ env.BUILD_TYPE }} --parallel
+
+      - name: Test callback dispatch
+        run: ctest --test-dir build -C ${{ env.BUILD_TYPE }} --output-on-failure
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

@@ -1,6 +1,20 @@
 AmxxMqttClient
 -------
-A mqtt client module for AmxModx
+A mqtt client module for AmxModx. Requires ReHLDS API 3.x, version 3.7 or later.
+The ReAPI AMXX module is not required; this module accesses the engine API directly.
+
+MQTT events are queued by the network threads and delivered to Pawn on the game
+thread via ReHLDS's `SV_Frame` hook, including while the game is paused. Each
+server frame processes at most 256 events
+in queue order; remaining events wait for subsequent frames. Callbacks run
+without holding the queue lock. Pending events are discarded while plugins are
+unloading or the module is detaching.
+
+The module checks the engine API before loading and unregisters its frame hook
+on detach. A paused AMXX plugin still cannot receive Pawn callbacks, and suspending
+the entire server process also suspends MQTT processing. The event queue currently
+has no capacity limit, so sustained overload or a stalled main thread can still
+cause queued messages to accumulate.
 
 Example
 -------
@@ -172,6 +186,12 @@ public on_disconnected(const MqttHandle:h, const MqttReasonCode:reasonCode)
 
 Building
 -------
+Initialize the Paho and ReHLDS SDK submodules before building:
+
+```shell
+git submodule update --init --recursive
+```
+
 Linux
 -------
 ```shell
@@ -189,6 +209,15 @@ Or
 
 ```shell
 ./build.sh
+```
+
+To build and run the callback dispatcher regression tests (a fake ReHLDS API is
+provided by the tests; no game server or broker is required):
+
+```shell
+cmake -S . -B build -DPAHO_WITH_SSL=FALSE -DPAHO_ENABLE_TESTING=FALSE -DAMXX_MQTT_BUILD_TESTS=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
 ```
 
 Windows

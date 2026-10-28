@@ -40,3 +40,9 @@ set(PAHO_BUILD_STATIC ON CACHE BOOL "Build static Paho MQTT C++ library")
 
 add_subdirectory(dep/mqtt-cpp)
 add_subdirectory(src)
+
+option(AMXX_MQTT_BUILD_TESTS "Build MQTT module regression tests" OFF)
+if(AMXX_MQTT_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

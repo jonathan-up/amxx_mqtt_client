@@ -1,3 +1,6 @@
 [submodule "dep/mqtt-cpp"]
 	path = dep/mqtt-cpp
 	url = https://github.com/eclipse-paho/paho.mqtt.cpp
+[submodule "dep/rehlds"]
+	path = dep/rehlds
+	url = https://github.com/rehlds/ReHLDS.git

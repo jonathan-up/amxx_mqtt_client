@@ -1,3 +1,22 @@
+# Public headers for the ReHLDS SV_Frame hook. No engine binaries are linked.
+if(NOT EXISTS "${PROJECT_SOURCE_DIR}/dep/rehlds/rehlds/public/rehlds/rehlds_api.h")
+    message(FATAL_ERROR "Missing ReHLDS SDK. Run git submodule update --init --recursive.")
+endif()
+
+add_library(amxx_module_sdk INTERFACE)
+target_include_directories(amxx_module_sdk INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(amxx_module_sdk SYSTEM INTERFACE
+    ${PROJECT_SOURCE_DIR}/dep/rehlds/rehlds/common
+    ${PROJECT_SOURCE_DIR}/dep/rehlds/rehlds/dlls
+    ${PROJECT_SOURCE_DIR}/dep/rehlds/rehlds/engine
+    ${PROJECT_SOURCE_DIR}/dep/rehlds/rehlds/pm_shared
+    ${PROJECT_SOURCE_DIR}/dep/rehlds/rehlds/public
+    ${PROJECT_SOURCE_DIR}/dep/rehlds/rehlds/public/rehlds
+)
+if(WIN32)
+    target_compile_definitions(amxx_module_sdk INTERFACE NOMINMAX)
+endif()
+
 # Module
 add_library(amxx_mqtt_client SHARED
     sdk/amxxmodule.cpp
@@ -5,6 +24,7 @@ add_library(amxx_mqtt_client SHARED
     natives.cpp
 
     CallbackDispatcher.cpp
+    RehldsFrameHook.cpp
     MqttClient.cpp
     AmxxMqttClient.cpp
     MqttClientMgr.cpp
@@ -58,4 +78,4 @@ elseif(AMXX_MQTT_MSVC)
     )
 endif()
 
-target_link_libraries(amxx_mqtt_client paho-mqttpp3-static)
+target_link_libraries(amxx_mqtt_client PRIVATE amxx_module_sdk paho-mqttpp3-static ${CMAKE_DL_LIBS})
