@@ -24,7 +24,7 @@ public:
 
     [[nodiscard]] int getOnMessageForwardId() const;
 
-    void setOnMessageForwardId(int m_i_on_message_forward_id);
+    void setOnMessageForwardId(int forwardId);
 
     [[nodiscard]] int getOnConnectionLostForwardId() const;
 

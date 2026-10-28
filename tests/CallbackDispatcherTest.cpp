@@ -25,6 +25,7 @@ struct Invocation {
     int handle;
     std::string text;
     int reason = 0;
+    std::string topic;
 };
 std::vector<Invocation> invocations;
 std::function<void(int)> onForward;
@@ -42,7 +43,10 @@ int ExecuteForward(int id, ...) {
     va_list args;
     va_start(args, id);
     Invocation invocation{id, va_arg(args, int), {}};
-    if (id == messageId || id == lostId) {
+    if (id == messageId) {
+        invocation.topic = va_arg(args, const char *);
+        invocation.text = va_arg(args, const char *);
+    } else if (id == lostId) {
         invocation.text = va_arg(args, const char *);
     } else if (id == disconnectedId) {
         invocation.reason = va_arg(args, int);
@@ -127,6 +131,7 @@ int main() {
         MessageCallbackDispatcher(handle, message);
         ConnectionLostCallbackDispatcher(handle, reason);
         DisconnectedCallbackDispatcher(handle, mqtt::SERVER_BUSY);
+        message->set_topic("changed topic");
         message->set_payload("changed payload");
         reason = "changed reason";
     });
@@ -139,6 +144,7 @@ int main() {
     Require(invocations.size() == 4, "Not all event kinds were dispatched");
     Require(invocations[0].id == connectedId && invocations[0].handle == handle, "Connected event mismatch");
     Require(invocations[1].id == messageId && invocations[1].text == "original payload", "Payload was not copied");
+    Require(invocations[1].topic == "topic", "Topic was not copied or callback arguments were swapped");
     Require(invocations[2].id == lostId && invocations[2].text == "original reason", "Reason was not copied");
     Require(invocations[3].id == disconnectedId && invocations[3].reason == mqtt::SERVER_BUSY, "Disconnect reason mismatch");
 

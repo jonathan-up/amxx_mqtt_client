@@ -33,6 +33,26 @@ the entire server process also suspends MQTT processing. The event queue current
 has no capacity limit, so sustained overload or a stalled main thread can still
 cause queued messages to accumulate.
 
+QoS and message callbacks
+-------
+
+Subscriptions and publishes accept QoS 0, 1, or 2; omitted QoS defaults to 0:
+
+```c
+mqtt_subscribe(h, "cs/server/commands", 1);
+mqtt_publish(h, "cs/server/status", "ready", false, 2);
+```
+
+For publishing, `retained` remains the fourth argument and `qos` is fifth.
+Invalid QoS values produce a native error. A return value of 1 means the
+asynchronous request was submitted, not that the broker has acknowledged it.
+
+Message callbacks now receive **`(handle, topic, payload)`**, using the same
+`mqtt_set_message_callback()` registration native. This changes the old
+`(handle, payload)` signature: update and recompile plugins using message
+callbacks before replacing the module. An old two-argument callback would read
+the topic as its payload. See the updated example below.
+
 Example
 -------
 
@@ -135,7 +155,7 @@ public cmd_subscribe()
     new newTopic[32];
     read_argv(2, newTopic, charsmax(newTopic));
 
-    mqtt_subscribe(h, newTopic);
+    mqtt_subscribe(h, newTopic, 1);
 
     copy(g_lastSub, charsmax(g_lastSub), newTopic);
 
@@ -157,7 +177,7 @@ public cmd_publish()
 
     if (mqtt_is_connect(h))
     {
-        new args = mqtt_publish(h, "cs/server", data);
+        new args = mqtt_publish(h, "cs/server", data, false, 1);
         server_print("%d", args);
     }
 
@@ -186,10 +206,10 @@ public on_connected(const MqttHandle:h)
     server_print("%d -> connected", h);
 }
 
-public on_message(const MqttHandle:h, const message[])
+public on_message(const MqttHandle:h, const topic[], const message[])
 {
-    server_print("%d -> %s",h , message);
-    client_print(0, print_chat, "[MQTT(%d)]: %s", h, message);
+    server_print("%d -> [%s] %s", h, topic, message);
+    client_print(0, print_chat, "[MQTT(%d) %s]: %s", h, topic, message);
 }
 public on_connection_lost(const MqttHandle:h, const reason[])
 {
@@ -232,7 +252,8 @@ To build and run the regression tests, install Python 3 as well. Tests provide a
 fake ReHLDS API and a minimal MQTT peer on an ephemeral loopback port; no game
 server or external broker is required. They cover dispatch ordering, stale handles,
 plugin reload, disconnect completion and state, reconnecting, and immediate
-destruction of pending actions:
+destruction of pending actions. Native API tests also check subscription/publish
+QoS on the wire, QoS 2 acknowledgements, retained flags, validation, and topic/payload order:
 
 ```shell
 cmake -S . -B build -DPAHO_WITH_SSL=FALSE -DPAHO_ENABLE_TESTING=FALSE -DAMXX_MQTT_BUILD_TESTS=ON

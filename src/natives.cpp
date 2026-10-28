@@ -132,7 +132,7 @@ cell AMX_NATIVE_CALL mqtt_is_connect(AMX *amx, cell *params) {
 }
 
 cell AMX_NATIVE_CALL mqtt_subscribe(AMX *amx, cell *params) {
-    enum { arg_count, arg_handle, arg_topic };
+    enum { arg_count, arg_handle, arg_topic, arg_qos };
 
     // check args
     if (ARG_COUNT < 2) {
@@ -154,9 +154,16 @@ cell AMX_NATIVE_CALL mqtt_subscribe(AMX *amx, cell *params) {
         return 0;
     }
 
+    // Old compiled plugins pass only two arguments.
+    const int qos = (ARG_COUNT >= 3) ? params[arg_qos] : 0;
+    if (qos < 0 || qos > 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid MQTT QoS: %d (expected 0, 1, or 2)", qos);
+        return 0;
+    }
+
     try {
         // subscribe
-        client->subscribe(topicName.c_str());
+        client->subscribe(topicName.c_str(), qos);
         return 1;
     } catch (const mqtt::exception &err) {
         MF_LogError(amx, AMX_ERR_NATIVE, err.what());
@@ -198,7 +205,7 @@ cell AMX_NATIVE_CALL mqtt_unsubscribe(AMX *amx, cell *params) {
 }
 
 cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
-    enum { arg_count, arg_handle, arg_topic, arg_data, arg_retained };
+    enum { arg_count, arg_handle, arg_topic, arg_data, arg_retained, arg_qos };
 
     // check args
     if (ARG_COUNT < 3) {
@@ -225,10 +232,16 @@ cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
 
     // get retained flag (optional, defaults to false)
     const bool retained = (ARG_COUNT >= 4) ? (params[arg_retained] != 0) : false;
+    // Keep retained in position four; old bytecode has no fifth argument.
+    const int qos = (ARG_COUNT >= 5) ? params[arg_qos] : 0;
+    if (qos < 0 || qos > 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid MQTT QoS: %d (expected 0, 1, or 2)", qos);
+        return 0;
+    }
 
     try {
         // publish
-        client->publish(topicName, data, 0, retained);
+        client->publish(topicName, data, qos, retained);
         return 1;
     } catch (const mqtt::exception &err) {
         MF_LogError(amx, AMX_ERR_NATIVE, err.what());
@@ -287,7 +300,7 @@ cell AMX_NATIVE_CALL mqtt_set_message_callback(AMX *amx, cell *params) {
     const std::string callback{MF_GetAmxString(amx, params[arg_callback], arg_callback - 1, nullptr)};
 
     // check callback
-    const int forwardId = MF_RegisterSPForwardByName(amx, callback.c_str(), FP_CELL, FP_STRING, FP_DONE);
+    const int forwardId = MF_RegisterSPForwardByName(amx, callback.c_str(), FP_CELL, FP_STRING, FP_STRING, FP_DONE);
     if (forwardId == -1) {
         MF_LogError(amx, AMX_ERR_NATIVE, "Callback function \"%s\" is not exists", callback.c_str());
         return 0;

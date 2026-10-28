@@ -31,6 +31,22 @@
 - 挂起整个服务器进程时，MQTT 处理也会暂停。
 - 事件队列目前没有容量上限，持续过载或主线程停滞可能导致消息不断积压。
 
+## QoS 与消息回调
+
+订阅和发布均支持 QoS 0、1、2，省略时默认为 0：
+
+```c
+mqtt_subscribe(h, "cs/server/commands", 1);
+mqtt_publish(h, "cs/server/status", "ready", false, 2);
+```
+
+发布函数的第四个参数仍为 `retained`，第五个参数是 `qos`。无效 QoS 会触发 native
+错误。返回 1 只表示异步请求已提交，不表示 Broker 已完成确认。
+
+消息回调统一为 **`(handle, topic, payload)`**，仍通过 `mqtt_set_message_callback()`
+注册。这改变了旧的 `(handle, payload)` 签名：使用消息回调的插件需要修改源码，
+重新编译后再更新模块；旧的两参数回调会把 topic 当作 payload。下方示例已更新。
+
 ## 使用示例
 
 以下 Pawn 示例演示客户端创建、连接、订阅、发布、连接状态查询、断开连接及回调注册。
@@ -135,7 +151,7 @@ public cmd_subscribe()
     new newTopic[32];
     read_argv(2, newTopic, charsmax(newTopic));
 
-    mqtt_subscribe(h, newTopic);
+    mqtt_subscribe(h, newTopic, 1);
 
     copy(g_lastSub, charsmax(g_lastSub), newTopic);
 
@@ -157,7 +173,7 @@ public cmd_publish()
 
     if (mqtt_is_connect(h))
     {
-        new args = mqtt_publish(h, "cs/server", data);
+        new args = mqtt_publish(h, "cs/server", data, false, 1);
         server_print("%d", args);
     }
 
@@ -186,10 +202,10 @@ public on_connected(const MqttHandle:h)
     server_print("%d -> connected", h);
 }
 
-public on_message(const MqttHandle:h, const message[])
+public on_message(const MqttHandle:h, const topic[], const message[])
 {
-    server_print("%d -> %s",h , message);
-    client_print(0, print_chat, "[MQTT(%d)]: %s", h, message);
+    server_print("%d -> [%s] %s", h, topic, message);
+    client_print(0, print_chat, "[MQTT(%d) %s]: %s", h, topic, message);
 }
 public on_connection_lost(const MqttHandle:h, const reason[])
 {
@@ -253,6 +269,8 @@ ctest --test-dir build --output-on-failure
 单帧事件处理上限、客户端销毁重建、旧句柄与迟到事件隔离、插件重载、模块分离，
 以及真实 Paho 连接的断开完成通知、连接状态更新、重复断开、重连、未注册回调，
 和发起断开后立即销毁等场景。
+Native 接口测试还会检查实际报文中的订阅/发布 QoS、QoS 2 确认流程、retained 标记、
+无效 QoS 参数处理，以及消息回调的 topic/payload 顺序。
 
 ### Windows（Win32）
 

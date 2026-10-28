@@ -96,7 +96,7 @@ public cmd_subscribe()
     new newTopic[32];
     read_argv(2, newTopic, charsmax(newTopic));
 
-    mqtt_subscribe(h, newTopic);
+    mqtt_subscribe(h, newTopic, 1);
 
     copy(g_lastSub, charsmax(g_lastSub), newTopic);
 
@@ -118,7 +118,7 @@ public cmd_publish()
 
     if (mqtt_is_connect(h))
     {
-        new args = mqtt_publish(h, "cs/server", data);
+        new args = mqtt_publish(h, "cs/server", data, false, 1);
         server_print("%d", args);
     }
 
@@ -147,10 +147,10 @@ public on_connected(const MqttHandle:h)
     server_print("%d -> connected", h);
 }
 
-public on_message(const MqttHandle:h, const message[])
+public on_message(const MqttHandle:h, const topic[], const message[])
 {
-    server_print("%d -> %s",h , message);
-    client_print(0, print_chat, "[MQTT(%d)]: %s", h, message);
+    server_print("%d -> [%s] %s", h, topic, message);
+    client_print(0, print_chat, "[MQTT(%d) %s]: %s", h, topic, message);
 }
 public on_connection_lost(const MqttHandle:h, const reason[])
 {

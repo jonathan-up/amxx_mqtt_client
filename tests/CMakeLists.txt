@@ -35,3 +35,18 @@ target_link_libraries(mqtt_client_state_test PRIVATE amxx_module_sdk paho-mqttpp
 add_test(NAME mqtt_client_state
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/LocalBrokerTest.py $<TARGET_FILE:mqtt_client_state_test>)
 set_tests_properties(mqtt_client_state PROPERTIES TIMEOUT 60)
+
+add_executable(mqtt_native_api_test
+    MqttNativeApiTest.cpp
+    ../src/natives.cpp
+    ../src/CallbackDispatcher.cpp
+    ../src/MqttClient.cpp
+    ../src/MqttClientMgr.cpp
+    ../src/AmxxMqttClient.cpp
+    ../src/ConnectOption.cpp
+    ../src/ConnectOptionMgr.cpp
+)
+target_link_libraries(mqtt_native_api_test PRIVATE amxx_module_sdk paho-mqttpp3-static)
+add_test(NAME mqtt_native_api
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/LocalBrokerTest.py $<TARGET_FILE:mqtt_native_api_test>)
+set_tests_properties(mqtt_native_api PROPERTIES TIMEOUT 60)

@@ -162,10 +162,12 @@ native bool:mqtt_is_connect(const MqttHandle:handle);
  *
  * @param handle which client
  * @param topicName topic for subscribe
+ * @param qos maximum requested QoS: 0, 1, or 2 (default 0)
  *
- * @noreturn
+ * @return 1 if the asynchronous request was submitted, 0 on failure.
+ *         This does not confirm broker acknowledgement.
  */
-native mqtt_subscribe(const MqttHandle:handle, const topicName[]);
+native mqtt_subscribe(const MqttHandle:handle, const topicName[], qos = 0);
 
 /**
  * Unsubscribe topic
@@ -188,10 +190,12 @@ native mqtt_unsubscribe(const MqttHandle:handle, const topicName[]);
  * @param topicName topic to publish
  * @param data payload string
  * @param retained if true, broker stores the last message for new subscribers
+ * @param qos publish QoS: 0, 1, or 2 (default 0); follows retained for compatibility
  *
- * @noreturn
+ * @return 1 if the asynchronous request was submitted, 0 on failure.
+ *         This does not confirm broker acknowledgement.
  */
-native mqtt_publish(const MqttHandle:handle, const topicName[], const data[], bool:retained = false);
+native mqtt_publish(const MqttHandle:handle, const topicName[], const data[], bool:retained = false, qos = 0);
 
 /**
  * The `callback` will be called when client connected
@@ -208,7 +212,11 @@ native mqtt_set_connected_callback(const MqttHandle:handle, const callback[]);
 /**
  * The `callback` will be called when client receive message
  *
- * @note callback should be: public on_message(const MqttHandle:h, const message[])
+ * @note callback should be:
+ *       public on_message(const MqttHandle:h, const topic[], const message[])
+ *       Existing (handle, message) callbacks must be updated and recompiled:
+ *       the second argument is now the topic, and the third is the payload.
+ *       Replaces the previous message callback only if registration succeeds.
  *
  * @param handle which client
  * @param callback target function

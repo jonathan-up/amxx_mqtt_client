@@ -19,6 +19,7 @@ struct CallbackEvent {
     int handle;
     std::string text;
     mqtt::ReasonCode reasonCode = mqtt::NORMAL_DISCONNECTION;
+    std::string topic;
 };
 
 std::mutex callbackMutex;
@@ -49,7 +50,7 @@ void ExecuteCallback(const CallbackEvent &event) {
             break;
         case CallbackType::Message:
             if (const int id = client->getOnMessageForwardId(); id != -1) {
-                MF_ExecuteForward(id, event.handle, event.text.c_str());
+                MF_ExecuteForward(id, event.handle, event.topic.c_str(), event.text.c_str());
             }
             break;
         case CallbackType::ConnectionLost:
@@ -71,7 +72,9 @@ void ConnectedCallbackDispatcher(const int handle) {
 }
 
 void MessageCallbackDispatcher(const int handle, const mqtt::const_message_ptr &msg) {
-    EnqueueCallback({CallbackType::Message, handle, msg->get_payload_str()});
+    CallbackEvent event{CallbackType::Message, handle, msg->get_payload_str()};
+    event.topic = msg->get_topic();
+    EnqueueCallback(std::move(event));
 }
 
 void ConnectionLostCallbackDispatcher(const int handle, const std::string &reason) {

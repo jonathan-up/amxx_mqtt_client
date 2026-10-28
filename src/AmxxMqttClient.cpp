@@ -37,8 +37,11 @@ int AmxxMqttClient::getOnMessageForwardId() const {
     return m_iOnMessageForwardId;
 }
 
-void AmxxMqttClient::setOnMessageForwardId(int m_i_on_message_forward_id) {
-    m_iOnMessageForwardId = m_i_on_message_forward_id;
+void AmxxMqttClient::setOnMessageForwardId(int forwardId) {
+    if (m_iOnMessageForwardId != -1 && m_iOnMessageForwardId != forwardId) {
+        MF_UnregisterSPForward(m_iOnMessageForwardId);
+    }
+    m_iOnMessageForwardId = forwardId;
 }
 
 int AmxxMqttClient::getOnConnectionLostForwardId() const {
