@@ -96,6 +96,10 @@ void MqttClient::notifyDisconnect() const {
 }
 
 void MqttClient::on_success(const mqtt::token &) {
+    // Paho has completed the local disconnect. Publish the state before the
+    // notification, even if no handler is registered. A request/failure alone
+    // does not prove the connection has closed.
+    m_bIsConnected = false;
     notifyDisconnect();
 }
 

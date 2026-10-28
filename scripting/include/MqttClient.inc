@@ -133,6 +133,9 @@ native mqtt_connect(const MqttHandle:handle, const MqttConnectOptions:options);
 /**
  * Disconnect from blocker
  *
+ * @note Asynchronous: mqtt_is_connect() changes to false when disconnect
+ *       succeeds, before the disconnected callback is queued.
+ *
  * @param handle which client
  *
  * @noreturn
@@ -141,6 +144,10 @@ native mqtt_disconnect(const MqttHandle:handle);
 
 /**
  * Check client connection
+ *
+ * @note Returns the latest known connection state. A pending disconnect may
+ *       still report true; a later reconnect can report true again even if
+ *       an earlier disconnected callback is still queued.
  *
  * @param handle which client
  *

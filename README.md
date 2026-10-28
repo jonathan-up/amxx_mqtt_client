@@ -21,6 +21,12 @@ Disconnect completion uses Paho's action listener, with no detached wait thread.
 Plugin unload also destroys clients and unused connection options before AMXX
 releases their forwards. Create new clients when the next map's plugins load.
 
+`mqtt_disconnect()` is asynchronous. On successful completion the connection
+state becomes false before the disconnected callback is queued, even without a
+registered callback. A pending or failed request alone does not mark a connected
+client as disconnected. `mqtt_is_connect()` reports the latest known state; a
+subsequent reconnect may have completed before an older queued callback runs.
+
 The module checks the engine API before loading and unregisters its frame hook
 on detach. A paused AMXX plugin still cannot receive Pawn callbacks, and suspending
 the entire server process also suspends MQTT processing. The event queue currently
@@ -225,7 +231,8 @@ Or
 To build and run the regression tests, install Python 3 as well. Tests provide a
 fake ReHLDS API and a minimal MQTT peer on an ephemeral loopback port; no game
 server or external broker is required. They cover dispatch ordering, stale handles,
-plugin reload, disconnect completion, and immediate destruction of pending actions:
+plugin reload, disconnect completion and state, reconnecting, and immediate
+destruction of pending actions:
 
 ```shell
 cmake -S . -B build -DPAHO_WITH_SSL=FALSE -DPAHO_ENABLE_TESTING=FALSE -DAMXX_MQTT_BUILD_TESTS=ON

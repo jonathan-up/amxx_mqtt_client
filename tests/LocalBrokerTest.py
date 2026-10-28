@@ -1,4 +1,4 @@
-"""Run the lifetime test against a minimal MQTT 5 peer on an ephemeral loopback port."""
+"""Run an MQTT test against a minimal MQTT 5 peer on an ephemeral loopback port."""
 import socket
 import subprocess
 import sys

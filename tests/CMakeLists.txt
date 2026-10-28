@@ -29,3 +29,9 @@ target_link_libraries(mqtt_client_lifetime_test PRIVATE amxx_module_sdk paho-mqt
 add_test(NAME mqtt_client_lifetime
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/LocalBrokerTest.py $<TARGET_FILE:mqtt_client_lifetime_test>)
 set_tests_properties(mqtt_client_lifetime PROPERTIES TIMEOUT 60)
+
+add_executable(mqtt_client_state_test MqttClientStateTest.cpp ../src/MqttClient.cpp)
+target_link_libraries(mqtt_client_state_test PRIVATE amxx_module_sdk paho-mqttpp3-static)
+add_test(NAME mqtt_client_state
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/LocalBrokerTest.py $<TARGET_FILE:mqtt_client_state_test>)
+set_tests_properties(mqtt_client_state PROPERTIES TIMEOUT 60)
