@@ -1,5 +1,6 @@
 #include "CallbackDispatcher.h"
 #include "MqttClientMgr.h"
+#include "ConnectOptionMgr.h"
 #include "sdk/amxxmodule.h"
 #include "RehldsFrameHook.h"
 #include "FakeRehlds.h"
@@ -27,6 +28,7 @@ struct Invocation {
 };
 std::vector<Invocation> invocations;
 std::function<void(int)> onForward;
+int unregisteredForwards = 0;
 
 void Require(bool condition, const char *message) {
     if (!condition) {
@@ -56,6 +58,7 @@ int ExecuteForward(int id, ...) {
 
 void UnregisterForward(int) {
     Require(std::this_thread::get_id() == gameThread, "Forward unregistered on a worker thread");
+    ++unregisteredForwards;
 }
 
 int AddNatives(const AMX_NATIVE_INFO *) { return 1; }
@@ -100,6 +103,15 @@ int main() {
     Require(FakeEngineHookCount() == 1, "Module did not register SV_Frame");
     std::string error;
     Require(RegisterRehldsFrameHook(error) && FakeEngineHookCount() == 1, "Duplicate hook registered");
+
+    // Invalid lookups and failed construction must not consume active capacity.
+    for (int i = 1; i <= 10001; ++i) {
+        Require(g_mqttClientMgr.getClient(i) == nullptr, "Unknown handle unexpectedly exists");
+        try {
+            g_mqttClientMgr.make("invalid://broker", "invalid-client");
+            Require(false, "Malformed broker URI was accepted");
+        } catch (const mqtt::exception &) {}
+    }
     const int handle = CreateClient();
     ConnectedCallbackDispatcher(handle);
     Frame();
@@ -202,37 +214,81 @@ int main() {
     // missing client must be skipped without accessing the freed object.
     invocations.clear();
     const int destroyedHandle = CreateClient();
-    onForward = [destroyedHandle](int) { g_mqttClientMgr.destroy(destroyedHandle); };
+    int replacementHandle = 0;
+    onForward = [destroyedHandle, &replacementHandle](int) {
+        g_mqttClientMgr.destroy(destroyedHandle);
+        replacementHandle = CreateClient();
+    };
     ConnectedCallbackDispatcher(destroyedHandle);
     ConnectionLostCallbackDispatcher(destroyedHandle, "discard");
     Frame();
     Require(invocations.size() == 1, "Destroyed client still received callbacks");
     onForward = {};
+    Require(replacementHandle != destroyedHandle, "Destroyed client handle was reused");
+    Require(g_mqttClientMgr.getClient(destroyedHandle) == nullptr, "Stale handle resolves to a replacement client");
+    g_mqttClientMgr.destroy(destroyedHandle);
+    Require(g_mqttClientMgr.getClient(replacementHandle) != nullptr, "Stale destroy deleted a replacement client");
+    std::thread delayedProducer([destroyedHandle] {
+        ConnectedCallbackDispatcher(destroyedHandle);
+        MessageCallbackDispatcher(destroyedHandle, mqtt::make_message("topic", "stale payload"));
+        ConnectionLostCallbackDispatcher(destroyedHandle, "stale loss");
+        DisconnectedCallbackDispatcher(destroyedHandle, mqtt::NORMAL_DISCONNECTION);
+    });
+    delayedProducer.join();
+    ConnectedCallbackDispatcher(replacementHandle);
+    Frame();
+    Require(invocations.size() == 2 && invocations.back().handle == replacementHandle,
+            "Delayed events were delivered to a replacement client");
+
+    // Synchronous disconnect errors still queue a notification, and destroying
+    // the client before the next frame cancels it without a detached waiter.
+    invocations.clear();
+    const int offlineHandle = CreateClient();
+    g_mqttClientMgr.getClient(offlineHandle)->disconnect();
+    Require(invocations.empty(), "Disconnect called Pawn directly");
+    Frame();
+    Require(invocations.size() == 1 && invocations.back().id == disconnectedId,
+            "Offline disconnect notification was lost");
+    g_mqttClientMgr.getClient(offlineHandle)->disconnect();
+    g_mqttClientMgr.destroy(offlineHandle);
+    Frame();
+    Require(invocations.size() == 1, "Disconnect notification survived client destruction");
 
     // Shutdown from inside a callback cancels the rest of the frame; late
     // worker events while stopped are discarded and cannot cross into reload.
     invocations.clear();
+    const int optionsHandle = g_connectOptionMgr.make();
+    const int unregisteredBeforeReload = unregisteredForwards;
     onForward = [](int) { OnPluginsUnloading(); };
     ConnectedCallbackDispatcher(handle);
     ConnectionLostCallbackDispatcher(handle, "discard at shutdown");
     Frame();
     Require(invocations.size() == 1, "Callbacks continued after plugin shutdown");
+    Require(g_mqttClientMgr.getClient(handle) == nullptr &&
+            g_mqttClientMgr.getClient(replacementHandle) == nullptr, "Clients survived plugin unload");
+    Require(unregisteredForwards == unregisteredBeforeReload + 8, "Plugin unload leaked AMXX forwards");
+    Require(g_connectOptionMgr.getOptions(optionsHandle) == nullptr, "Options survived plugin unload");
     onForward = {};
     std::thread lateProducer([handle] { ConnectedCallbackDispatcher(handle); });
     lateProducer.join();
     OnPluginsLoaded();
+    const int reloadedHandle = CreateClient();
+    // Events arriving after dispatch resumes must also fail to resolve old IDs.
+    std::thread afterReloadProducer([handle] { ConnectedCallbackDispatcher(handle); });
+    afterReloadProducer.join();
     Frame();
     Require(invocations.size() == 1, "Old queued events survived plugin reload");
-    ConnectedCallbackDispatcher(handle);
+    ConnectedCallbackDispatcher(reloadedHandle);
     Frame();
-    Require(invocations.size() == 2, "Dispatch did not resume after plugin reload");
+    Require(invocations.size() == 2 && invocations.back().handle == reloadedHandle,
+            "Dispatch did not resume for the new client after plugin reload");
 
-    ConnectedCallbackDispatcher(handle);
+    ConnectedCallbackDispatcher(reloadedHandle);
     OnAmxxDetach();
     Require(FakeEngineHookCount() == 0, "Module detach left its hook registered");
     UnregisterRehldsFrameHook();
     Require(FakeEngineHookCount() == 0, "Repeated detach unregistered twice");
     Frame();
     Require(invocations.size() == 2, "Callbacks ran after module detach");
-    std::cout << "PASS: API validation, paused SV_Frame dispatch, unpause, main-thread ordering, reentrancy, and detach" << std::endl;
+    std::cout << "PASS: API validation, paused SV_Frame dispatch, ordering, stale handles, disconnect, reload, and detach" << std::endl;
 }

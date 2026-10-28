@@ -7,7 +7,6 @@
 
 #include "MqttClientMgr.h"
 #include "ConnectOptionMgr.h"
-#include "CallbackDispatcher.h"
 
 #define ARG_COUNT (params[0] / sizeof(cell))
 
@@ -72,20 +71,6 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
         return 0;
     }
 
-    // set handlers for client
-    client->setConnectedHandler([handle](const MqttClient *, const std::string &) {
-        ConnectedCallbackDispatcher(handle);
-    });
-    client->setMessageHandler([handle](const MqttClient *, const mqtt::const_message_ptr &msg) {
-        MessageCallbackDispatcher(handle, msg);
-    });
-    client->setConnectionLostHandler([handle](const MqttClient *, const mqtt::string &msg) {
-        ConnectionLostCallbackDispatcher(handle, msg);
-    });
-    client->setDisconnectHandler([handle](const MqttClient *, const mqtt::properties &, const mqtt::ReasonCode code) {
-        DisconnectedCallbackDispatcher(handle, code);
-    });
-
     try {
         // connect
         client->connect(*options->getOption());
@@ -110,7 +95,7 @@ cell AMX_NATIVE_CALL mqtt_disconnect(AMX *amx, cell *params) {
     const int handle = params[arg_handle];
 
     // check handle
-    const AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
+    AmxxMqttClient *client = g_mqttClientMgr.getClient(handle);
     if (client == nullptr) {
         MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", handle);
         return 0;

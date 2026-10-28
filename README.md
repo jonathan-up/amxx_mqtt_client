@@ -12,6 +12,15 @@ in queue order; remaining events wait for subsequent frames. Callbacks run
 without holding the queue lock. Pending events are discarded while plugins are
 unloading or the module is detaching.
 
+Client handles are opaque positive integers and are never reused during a module
+load, including across map changes. Destroyed clients' queued or late events are
+discarded. Up to 10,000 clients may be alive at once; exhausting the positive
+32-bit handle range fails creation instead of recycling old handles. Client
+creation, lookup, destruction, and AMXX forward access stay on the game thread.
+Disconnect completion uses Paho's action listener, with no detached wait thread.
+Plugin unload also destroys clients and unused connection options before AMXX
+releases their forwards. Create new clients when the next map's plugins load.
+
 The module checks the engine API before loading and unregisters its frame hook
 on detach. A paused AMXX plugin still cannot receive Pawn callbacks, and suspending
 the entire server process also suspends MQTT processing. The event queue currently
@@ -213,8 +222,10 @@ Or
 ./build.sh
 ```
 
-To build and run the callback dispatcher regression tests (a fake ReHLDS API is
-provided by the tests; no game server or broker is required):
+To build and run the regression tests, install Python 3 as well. Tests provide a
+fake ReHLDS API and a minimal MQTT peer on an ephemeral loopback port; no game
+server or external broker is required. They cover dispatch ordering, stale handles,
+plugin reload, disconnect completion, and immediate destruction of pending actions:
 
 ```shell
 cmake -S . -B build -DPAHO_WITH_SSL=FALSE -DPAHO_ENABLE_TESTING=FALSE -DAMXX_MQTT_BUILD_TESTS=ON

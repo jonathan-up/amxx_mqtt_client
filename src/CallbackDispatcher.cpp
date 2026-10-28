@@ -34,7 +34,8 @@ void EnqueueCallback(CallbackEvent event) {
 }
 
 void ExecuteCallback(const CallbackEvent &event) {
-    // Resolve the forward only on the game thread, immediately before use.
+    // Handles are never reused. Resolve only on the game thread immediately
+    // before use, and never touch client after Pawn may have destroyed it.
     const AmxxMqttClient *client = g_mqttClientMgr.getClient(event.handle);
     if (client == nullptr) {
         return;

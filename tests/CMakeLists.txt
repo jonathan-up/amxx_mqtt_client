@@ -22,3 +22,10 @@ add_executable(callback_dispatcher_test
 target_link_libraries(callback_dispatcher_test PRIVATE amxx_module_sdk paho-mqttpp3-static fake_rehlds ${CMAKE_DL_LIBS})
 add_test(NAME callback_dispatcher COMMAND callback_dispatcher_test)
 set_tests_properties(callback_dispatcher PROPERTIES TIMEOUT 30)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter)
+add_executable(mqtt_client_lifetime_test MqttClientLifetimeTest.cpp ../src/MqttClient.cpp)
+target_link_libraries(mqtt_client_lifetime_test PRIVATE amxx_module_sdk paho-mqttpp3-static)
+add_test(NAME mqtt_client_lifetime
+    COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/LocalBrokerTest.py $<TARGET_FILE:mqtt_client_lifetime_test>)
+set_tests_properties(mqtt_client_lifetime PROPERTIES TIMEOUT 60)

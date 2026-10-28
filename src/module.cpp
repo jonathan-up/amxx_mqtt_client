@@ -45,4 +45,8 @@ void OnPluginsLoaded() {
 
 void OnPluginsUnloading() {
     StopCallbackDispatcher();
+    // AMXX still owns the forwards here. Release them before it unloads Pawn
+    // programs or reuses forward IDs for the next map's plugins.
+    g_mqttClientMgr.reset();
+    g_connectOptionMgr.reset();
 }

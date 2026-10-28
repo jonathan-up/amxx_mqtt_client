@@ -101,6 +101,8 @@ enum MqttReasonCode {
  * Create a client
  *
  * @note Needs to be freed using mqtt_destroy() native.
+ *       Clients are also freed when plugins unload (including map changes).
+ *       Handles are opaque and never reused during a module load.
  *
  * @param blocker the mqtt blocker server
  * @param client_id client id
@@ -111,6 +113,7 @@ native MqttHandle:mqtt_create(const blocker[], const client_id[]);
 
 /**
  * Destroy a client
+ * Pending and late callbacks for this client will be discarded.
  *
  * @param handle which client
  *

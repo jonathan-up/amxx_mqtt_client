@@ -5,61 +5,33 @@
 #ifndef MQTT_CLIENT_MGR_H
 #define MQTT_CLIENT_MGR_H
 
+#include <cstdint>
+#include <memory>
+#include <thread>
 #include <unordered_map>
-#include <mutex>
-#include <set>
 
 #include "AmxxMqttClient.h"
 
-#define MAX_INDEX 10000
-
+// Owned by the game thread. Network callbacks may only enqueue events; they
+// must never look up, create, or destroy clients (including AMXX forwards).
 class MqttClientMgr {
-    std::unordered_map<int, AmxxMqttClient *> m_clients;
-    std::set<int> m_indexUsed;
-    std::mutex m_mutex;
+    std::unordered_map<int, std::unique_ptr<AmxxMqttClient>> m_clients;
+    const std::thread::id m_gameThread = std::this_thread::get_id();
+    // Never reset or wrap: a delayed event/stale Pawn handle must not identify
+    // another client, even across map changes. Zero remains the invalid handle.
+    std::uint64_t m_nextHandle = 1;
+    static constexpr size_t maxClients = 10000;
+
+    void assertGameThread() const;
 
 public:
-    ~MqttClientMgr();
+    int make(const std::string &broker, const std::string &clientId);
 
-    /**
-     * Make a mqtt client
-     *
-     * @param blocker block server uri
-     * @param clientId client id
-     *
-     * @return index for mqtt client
-     */
-    int make(const std::string &blocker, const std::string &clientId);
-
-    /**
-     * Get a client by index
-     *
-     * @param index client index
-     *
-     * @return MqttClient*
-     */
-    AmxxMqttClient *getClient(int index);
-
-    /**
-     * Destroy a client by index
-     *
-     * @param index client index
-     */
-    void destroy(int index);
-
-    /**
-     * Destroy all client
-     * Do not call this function in mqtt handler
-     * it will be deadlock
-     */
+    // Borrowed only until destroy/reset on the game thread. Callers must not
+    // retain or access this pointer after invoking Pawn (which can destroy it).
+    AmxxMqttClient *getClient(int handle) const;
+    void destroy(int handle);
     void reset();
-
-private:
-    /**
-     * make an index for mqtt client on making mqtt client
-     * @return
-     */
-    int makeIndex();
 };
 
 extern MqttClientMgr g_mqttClientMgr;
