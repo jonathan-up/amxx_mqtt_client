@@ -1,5 +1,7 @@
 AmxxMqttClient
 -------
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 A mqtt client module for AmxModx. Requires ReHLDS API 3.x, version 3.7 or later.
 The ReAPI AMXX module is not required; this module accesses the engine API directly.
 
