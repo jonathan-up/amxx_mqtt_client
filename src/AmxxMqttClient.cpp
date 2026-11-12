@@ -32,6 +32,9 @@ AmxxMqttClient::~AmxxMqttClient() {
     if (this->getDisconnectForwardId() != -1) {
         MF_UnregisterSPForward(this->getDisconnectForwardId());
     }
+    if (m_iOnErrorForwardId != -1) {
+        MF_UnregisterSPForward(m_iOnErrorForwardId);
+    }
 }
 
 int AmxxMqttClient::getOnConnectedForwardId() const {
@@ -64,4 +67,12 @@ int AmxxMqttClient::getDisconnectForwardId() const {
 
 void AmxxMqttClient::setDisconnectForwardId(int forwardId) {
     ReplaceForward(m_iOnDisconnectForwardId, forwardId);
+}
+
+int AmxxMqttClient::getErrorForwardId() const {
+    return m_iOnErrorForwardId;
+}
+
+void AmxxMqttClient::setErrorForwardId(int forwardId) {
+    ReplaceForward(m_iOnErrorForwardId, forwardId);
 }

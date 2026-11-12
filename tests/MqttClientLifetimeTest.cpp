@@ -68,7 +68,12 @@ int main(int argc, char **argv) {
                 // Remaining cases destroy immediately, including repeated
                 // requests that may fail synchronously or still be pending.
                 else if (i % 2 == 0) {
-                    client.disconnect();
+                    try { client.disconnect(); }
+                    catch (const mqtt::exception &error) {
+                        Require(error.get_return_code() == MQTTASYNC_DISCONNECTED ||
+                                error.get_return_code() == MQTTASYNC_OPERATION_INCOMPLETE,
+                                "Unexpected repeated-disconnect error");
+                    }
                 }
             }
             state->destroyed = true;

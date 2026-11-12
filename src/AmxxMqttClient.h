@@ -12,6 +12,7 @@ class AmxxMqttClient : public MqttClient {
     int m_iOnMessageForwardId = -1;
     int m_iOnConnectionLostForwardId = -1;
     int m_iOnDisconnectForwardId = -1;
+    int m_iOnErrorForwardId = -1;
 
 public:
     AmxxMqttClient(const std::string &blocker, const std::string &client);
@@ -33,6 +34,8 @@ public:
     [[nodiscard]] int getDisconnectForwardId() const;
 
     void setDisconnectForwardId(int forwardId);
+    [[nodiscard]] int getErrorForwardId() const;
+    void setErrorForwardId(int forwardId);
 };
 
 #endif //AMXX_MQTT_CLIENT_H

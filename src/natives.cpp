@@ -27,7 +27,7 @@ cell AMX_NATIVE_CALL mqtt_create(AMX *amx, cell *params) {
         // make it
         return g_mqttClientMgr.make(blocker, clientId);
     } catch (const mqtt::exception &err) {
-        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        MF_LogError(amx, AMX_ERR_NATIVE, "%s", err.what());
         return 0;
     }
 }
@@ -78,7 +78,7 @@ cell AMX_NATIVE_CALL mqtt_connect(AMX *amx, cell *params) {
         return 1;
     } catch (const mqtt::exception &err) {
         g_connectOptionMgr.destroy(optionsHandle);
-        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        MF_LogError(amx, AMX_ERR_NATIVE, "%s", err.what());
         return 0;
     }
 }
@@ -106,7 +106,7 @@ cell AMX_NATIVE_CALL mqtt_disconnect(AMX *amx, cell *params) {
         client->disconnect();
         return 1;
     } catch (const mqtt::exception &err) {
-        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        MF_LogError(amx, AMX_ERR_NATIVE, "%s", err.what());
         return 0;
     }
 }
@@ -166,7 +166,7 @@ cell AMX_NATIVE_CALL mqtt_subscribe(AMX *amx, cell *params) {
         client->subscribe(topicName.c_str(), qos);
         return 1;
     } catch (const mqtt::exception &err) {
-        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        MF_LogError(amx, AMX_ERR_NATIVE, "%s", err.what());
         return 0;
     }
 }
@@ -199,7 +199,7 @@ cell AMX_NATIVE_CALL mqtt_unsubscribe(AMX *amx, cell *params) {
         client->unsubscribe(topicName);
         return 1;
     } catch (const mqtt::exception &err) {
-        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        MF_LogError(amx, AMX_ERR_NATIVE, "%s", err.what());
         return 0;
     }
 }
@@ -244,7 +244,7 @@ cell AMX_NATIVE_CALL mqtt_publish(AMX *amx, cell *params) {
         client->publish(topicName, data, qos, retained);
         return 1;
     } catch (const mqtt::exception &err) {
-        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        MF_LogError(amx, AMX_ERR_NATIVE, "%s", err.what());
         return 0;
     }
 }
@@ -373,12 +373,33 @@ cell AMX_NATIVE_CALL mqtt_set_disconnected_callback(AMX *amx, cell *params) {
     return 1;
 }
 
+cell AMX_NATIVE_CALL mqtt_set_error_callback(AMX *amx, cell *params) {
+    if (ARG_COUNT < 2) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Too few arguments to %s", __FUNCTION__);
+        return 0;
+    }
+    auto *client = g_mqttClientMgr.getClient(params[1]);
+    if (!client) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Invalid mqtt client handle: %d", params[1]);
+        return 0;
+    }
+    const std::string callback{MF_GetAmxString(amx, params[2], 1, nullptr)};
+    const int id = MF_RegisterSPForwardByName(amx, callback.c_str(), FP_CELL, FP_CELL,
+                                            FP_CELL, FP_CELL, FP_STRING, FP_DONE);
+    if (id == -1) {
+        MF_LogError(amx, AMX_ERR_NATIVE, "Callback function \"%s\" does not exist", callback.c_str());
+        return 0;
+    }
+    client->setErrorForwardId(id);
+    return 1;
+}
+
 cell AMX_NATIVE_CALL mqtt_create_connect_options(AMX *amx, cell *) {
     // no args
     try {
         return g_connectOptionMgr.make();
     } catch (const mqtt::exception &err) {
-        MF_LogError(amx, AMX_ERR_NATIVE, err.what());
+        MF_LogError(amx, AMX_ERR_NATIVE, "%s", err.what());
         return 0;
     }
 }
@@ -449,6 +470,7 @@ AMX_NATIVE_INFO g_natives[] =
     {"mqtt_set_message_callback", mqtt_set_message_callback},
     {"mqtt_set_connection_lost_callback", mqtt_set_connection_lost_callback},
     {"mqtt_set_disconnected_callback", mqtt_set_disconnected_callback},
+    {"mqtt_set_error_callback", mqtt_set_error_callback},
 
     {"mqtt_create_connect_options", mqtt_create_connect_options},
     {"mqtt_set_options", mqtt_set_options},

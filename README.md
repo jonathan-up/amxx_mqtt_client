@@ -33,12 +33,51 @@ state becomes false before the disconnected callback is queued, even without a
 registered callback. A pending or failed request alone does not mark a connected
 client as disconnected. `mqtt_is_connect()` reports the latest known state; a
 subsequent reconnect may have completed before an older queued callback runs.
+An offline client or a pending connect/disconnect operation makes
+`mqtt_disconnect()` return 0 with a native error, without a disconnected callback.
+To cancel a pending connection immediately, call `mqtt_destroy()`; a rejected
+`mqtt_disconnect()` does not cancel it. Overlapping connect requests are rejected.
+Asynchronous connect/disconnect failures are logged on the game thread and sent
+to the optional `mqtt_set_error_callback()` callback; they never masquerade as a
+normal disconnection. Synchronous failures use native errors instead.
 
 The module checks the engine API before loading and unregisters its frame hook
 on detach. A paused AMXX plugin still cannot receive Pawn callbacks, and suspending
-the entire server process also suspends MQTT processing. The event queue currently
-has no capacity limit, so sustained overload or a stalled main thread can still
-cause queued messages to accumulate.
+the entire server process also suspends MQTT processing.
+
+The queue is limited to 4,096 events and 8 MiB of queued topic/payload/error text.
+An incoming message's topic plus payload must fit within 64 KiB. Oversized or
+excess incoming messages are dropped. Control events (connection changes and
+errors) evict the oldest queued message when needed; a queue containing only
+control events evicts its oldest event. Retained events preserve FIFO order.
+Drop counts are logged on the game thread at most once every five seconds.
+These application-level drops can occur even with MQTT QoS 1/2; QoS does not
+acknowledge Pawn callback execution. Destroying a client immediately removes its
+queued events and rejects late arrivals. Limits apply to the module's callback
+queue, not Paho's network receive buffers.
+
+Failure notifications
+-------
+
+Register before connecting:
+
+```c
+mqtt_set_error_callback(h, "on_mqtt_error");
+
+public on_mqtt_error(const MqttHandle:h, MqttOperation:operation,
+                     code, MqttReasonCode:reason, const message[])
+{
+    server_print("MQTT %d operation %d failed: code=%d reason=%d %s",
+                 h, operation, code, reason, message);
+}
+```
+
+`operation` is `MQTT_OPERATION_CONNECT` (1) or `MQTT_OPERATION_DISCONNECT` (2).
+`code` is Paho's return code and `reason` is the MQTT broker reason code. Inspect
+both: a broker rejection can have `code == 0` and a failure reason such as 135
+(not authorized). The callback follows the same queue, replacement and lifetime
+rules as other callbacks. Update the include and recompile to use this new native.
+Existing plugins must account for the corrected disconnect error behavior.
 
 QoS and message callbacks
 -------
@@ -261,8 +300,13 @@ server or external broker is required. They cover dispatch ordering, stale handl
 plugin reload, disconnect completion and state, reconnecting, and immediate
 destruction of pending actions. Native API tests also check subscription/publish
 QoS on the wire, QoS 2 acknowledgements, retained flags, validation, topic/payload
-order, all four callback replacements, and rejection of consumed connection options.
-Options manager tests cover stale handles, map-change reset, and the live-options limit:
+order, all five callback replacements, and rejection of consumed connection options.
+Options manager tests cover stale handles, map-change reset, and the live-options limit.
+Additional regressions cover queue count/byte limits, oversized messages, control
+event priority, immediate purge and late-event rejection after destruction,
+authentication rejection, connect timeout, early transport closure, retries,
+failure logging without a callback, rejected disconnects while connecting, and
+destruction of pending connections:
 
 ```shell
 cmake -S . -B build -DPAHO_WITH_SSL=FALSE -DPAHO_ENABLE_TESTING=FALSE -DAMXX_MQTT_BUILD_TESTS=ON

@@ -3,6 +3,7 @@ import socket
 import subprocess
 import sys
 import threading
+import time
 
 
 def read_exact(conn, size):
@@ -65,9 +66,22 @@ def serve_client(conn):
     with conn:
         conn.settimeout(8)
         try:
-            header, _ = read_packet(conn)
+            header, body = read_packet(conn)
             if header >> 4 != 1:
                 raise ValueError("Expected CONNECT")
+            offset = skip_properties(body, 10)
+            size = int.from_bytes(body[offset:offset + 2], "big")
+            client_id = body[offset + 2:offset + 2 + size].decode()
+            if client_id in ("reject-auth", "reject-no-handler"):
+                conn.sendall(bytes.fromhex("20 03 00 87 00"))
+                return
+            if client_id == "close-before-connack":
+                return
+            if client_id == "connect-timeout":
+                read_packet(conn)  # Client closes when its one-second timeout expires.
+                return
+            if client_id == "delayed-connack":
+                time.sleep(0.5)
             conn.sendall(bytes.fromhex("20 03 00 00 00"))  # Successful v5 CONNACK.
             while True:
                 header, body = read_packet(conn)
@@ -103,7 +117,7 @@ def serve_client(conn):
                     send_packet(conn, 0x70, body[:2])
                 else:
                     raise ValueError(f"Unexpected MQTT packet {packet}")
-        except (EOFError, ConnectionResetError):
+        except (EOFError, ConnectionResetError, BrokenPipeError):
             pass  # Immediate client teardown may close before DISCONNECT.
         except Exception as error:
             errors.append(repr(error))

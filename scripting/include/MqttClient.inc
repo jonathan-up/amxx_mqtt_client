@@ -16,6 +16,10 @@ enum MqttConnectOptions
 {
     MqttConnectOptions_Invalid = 0
 }
+enum MqttOperation {
+    MQTT_OPERATION_CONNECT = 1,
+    MQTT_OPERATION_DISCONNECT = 2
+}
 enum MqttConnectOptionNames {
     /**
      * Set username
@@ -126,11 +130,13 @@ native mqtt_destroy(const MqttHandle:handle);
  *
  * @note Once both handles are validated, options are consumed even if the
  *       connection request fails. Create fresh options for each attempt.
+ *       Already connected or pending clients reject another connect request.
+ *       Asynchronous failures are logged and sent to mqtt_set_error_callback().
  *
  * @param handle which client
  * @param options connection options to consume
  *
- * @noreturn
+ * @return 1 if submitted; 0 and a native error on synchronous rejection.
  */
 native mqtt_connect(const MqttHandle:handle, const MqttConnectOptions:options);
 
@@ -139,10 +145,14 @@ native mqtt_connect(const MqttHandle:handle, const MqttConnectOptions:options);
  *
  * @note Asynchronous: mqtt_is_connect() changes to false when disconnect
  *       succeeds, before the disconnected callback is queued.
+ *       Offline clients and pending connect/disconnect requests produce a
+ *       native error, without a disconnected callback. To cancel a pending
+ *       connection immediately, use mqtt_destroy(). Async failures are logged
+ *       and delivered to the error callback, never as NORMAL_DISCONNECTION.
  *
  * @param handle which client
  *
- * @noreturn
+ * @return 1 if submitted; 0 and a native error on synchronous rejection.
  */
 native mqtt_disconnect(const MqttHandle:handle);
 
@@ -222,6 +232,8 @@ native mqtt_set_connected_callback(const MqttHandle:handle, const callback[]);
  *       Existing (handle, message) callbacks must be updated and recompiled:
  *       the second argument is now the topic, and the third is the payload.
  *       Replaces the previous message callback only if registration succeeds.
+ *       Topic + payload must fit within 64 KiB. Queue overload can drop
+ *       messages, even at QoS 1/2; drops are logged on the game thread.
  *
  * @param handle which client
  * @param callback target function
@@ -255,6 +267,22 @@ native mqtt_set_connection_lost_callback(const MqttHandle:handle, const callback
  * @noreturn
  */
 native mqtt_set_disconnected_callback(const MqttHandle:handle, const callback[]);
+
+/**
+ * Register asynchronous connect/disconnect failure notifications.
+ *
+ * public on_mqtt_error(const MqttHandle:h, MqttOperation:operation,
+ *                      code, MqttReasonCode:reason, const message[])
+ *
+ * @note code is Paho's return code; reason is the MQTT broker reason code.
+ *       Check both: broker rejection may have code 0 and a nonzero reason.
+ *       Synchronous rejections use native errors instead of this callback.
+ *       Failures are also logged, even without a callback. Delivery uses the
+ *       bounded main-thread queue and is discarded on destroy/unload.
+ *       Registration failure preserves the previous callback.
+ * @return 1 on success, 0 on failure.
+ */
+native mqtt_set_error_callback(const MqttHandle:handle, const callback[]);
 
 /**
  * Create connect options

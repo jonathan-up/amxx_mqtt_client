@@ -14,6 +14,8 @@
 
 class MqttClient : private mqtt::iaction_listener {
 public:
+    enum class Operation { Connect = 1, Disconnect = 2 };
+    using ErrorHandler = std::function<void(Operation, int, mqtt::ReasonCode, const std::string &)>;
     using ConnectedHandler = std::function<void(const MqttClient *mqtt_client, const std::string &msg)>;
     using MessageHandler = std::function<void (const MqttClient *mqtt_client, mqtt::const_message_ptr)>;
     using ConnectionLostHandler = std::function<void(const MqttClient *mqtt_client, const std::string &msg)>;
@@ -21,7 +23,8 @@ public:
                                                    mqtt::ReasonCode)>;
 
 private:
-    std::atomic<bool> m_bIsConnected{false};
+    enum class State { Disconnected, Connecting, Connected, Disconnecting };
+    std::atomic<State> m_state{State::Disconnected};
     mutable std::mutex m_handlerMutex;
     bool m_stopping = false;
 
@@ -30,6 +33,7 @@ private:
     MessageHandler m_messageHandler;
     ConnectionLostHandler m_connectionLostHandler;
     DisconnectedHandler m_disconnectedHandler;
+    ErrorHandler m_errorHandler;
 
     // Destroy Paho before the listener, handlers, and their synchronization.
     std::unique_ptr<mqtt::async_client> m_pClient;
@@ -56,6 +60,7 @@ public:
     void setConnectionLostHandler(const ConnectionLostHandler &handler);
 
     void setDisconnectHandler(const DisconnectedHandler &handler);
+    void setErrorHandler(const ErrorHandler &handler);
 
     void connect();
     void connect(const mqtt::connect_options& options);

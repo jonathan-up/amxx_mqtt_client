@@ -246,19 +246,71 @@ int main() {
     Require(invocations.size() == 2 && invocations.back().handle == replacementHandle,
             "Delayed events were delivered to a replacement client");
 
-    // Synchronous disconnect errors still queue a notification, and destroying
-    // the client before the next frame cancels it without a detached waiter.
+    // A rejected disconnect must not fabricate a successful notification.
     invocations.clear();
     const int offlineHandle = CreateClient();
-    g_mqttClientMgr.getClient(offlineHandle)->disconnect();
+    bool rejected = false;
+    try { g_mqttClientMgr.getClient(offlineHandle)->disconnect(); }
+    catch (const mqtt::exception &) { rejected = true; }
+    Require(rejected, "Offline disconnect was accepted");
     Require(invocations.empty(), "Disconnect called Pawn directly");
     Frame();
-    Require(invocations.size() == 1 && invocations.back().id == disconnectedId,
-            "Offline disconnect notification was lost");
-    g_mqttClientMgr.getClient(offlineHandle)->disconnect();
+    Require(invocations.empty(), "Failed disconnect reported success");
+    DisconnectedCallbackDispatcher(offlineHandle, mqtt::NORMAL_DISCONNECTION);
     g_mqttClientMgr.destroy(offlineHandle);
     Frame();
-    Require(invocations.size() == 1, "Disconnect notification survived client destruction");
+    Require(invocations.empty(), "Disconnect notification survived client destruction");
+
+    // Bound the queue by both count and bytes. Oversized input is rejected
+    // before copying; overflow keeps FIFO messages but admits control events.
+    const auto dropsBefore = GetCallbackQueueStats().dropped;
+    auto oversized = mqtt::make_message("t", std::string(MaxMessageCallbackBytes, 'x'));
+    MessageCallbackDispatcher(handle, oversized);
+    Require(GetCallbackQueueStats().count == 0 && GetCallbackQueueStats().dropped == dropsBefore + 1,
+            "Oversized message was queued");
+    auto large = mqtt::make_message("t", std::string(MaxMessageCallbackBytes - 1, 'x'));
+    for (int i = 0; i < 10000; ++i) MessageCallbackDispatcher(handle, large);
+    auto stats = GetCallbackQueueStats();
+    Require(stats.bytes == MaxQueuedCallbackBytes && stats.count == MaxQueuedCallbackBytes / MaxMessageCallbackBytes,
+            "Queue byte limit was not enforced");
+    ConnectedCallbackDispatcher(handle); // zero bytes; must still be accepted
+    Require(GetCallbackQueueStats().count == stats.count + 1, "Control notification lost under message overload");
+    StopCallbackDispatcher();
+    Require(GetCallbackQueueStats().count == 0 && GetCallbackQueueStats().bytes == 0, "Stop leaked queued bytes");
+    StartCallbackDispatcher();
+
+    const int floodedHandle = CreateClient();
+    for (size_t i = 0; i < MaxQueuedCallbacks + 100; ++i) {
+        MessageCallbackDispatcher(floodedHandle, mqtt::make_message("t", std::to_string(i)));
+    }
+    Require(GetCallbackQueueStats().count == MaxQueuedCallbacks, "Queue event limit was not enforced");
+    ConnectedCallbackDispatcher(handle); // evicts the oldest message
+    Require(GetCallbackQueueStats().count == MaxQueuedCallbacks, "Control event exceeded event limit");
+    Frame();
+    Require(invocations.size() == 256 && invocations.front().text == "1" && invocations.back().text == "256",
+            "Overflow changed retained message ordering");
+    invocations.clear();
+    g_mqttClientMgr.destroy(floodedHandle);
+    Require(GetCallbackQueueStats().count == 1 && GetCallbackQueueStats().bytes == 0,
+            "Destroy did not immediately purge queued payloads");
+    std::thread lateFlood([&] {
+        for (int i = 0; i < 100; ++i) MessageCallbackDispatcher(floodedHandle, large);
+    });
+    lateFlood.join();
+    Require(GetCallbackQueueStats().count == 1, "Late callbacks refilled a destroyed client's queue");
+    Frame();
+    Require(invocations.size() == 1 && invocations.front().id == connectedId,
+            "Surviving client's control event was lost");
+
+    // Control-only floods must also be bounded and preserve byte accounting.
+    invocations.clear();
+    for (size_t i = 0; i < MaxQueuedCallbacks + 100; ++i) {
+        ConnectionLostCallbackDispatcher(handle, std::string(2000, 'x'));
+    }
+    Require(GetCallbackQueueStats().count == MaxQueuedCallbacks &&
+            GetCallbackQueueStats().bytes == MaxQueuedCallbacks * 1024, "Control flood was unbounded");
+    StopCallbackDispatcher();
+    StartCallbackDispatcher();
 
     // Shutdown from inside a callback cancels the rest of the frame; late
     // worker events while stopped are discarded and cannot cross into reload.

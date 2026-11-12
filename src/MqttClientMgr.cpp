@@ -37,9 +37,14 @@ int MqttClientMgr::make(const std::string &broker, const std::string &clientId) 
     client->setDisconnectHandler([handle](const MqttClient *, const mqtt::properties &, mqtt::ReasonCode code) {
         DisconnectedCallbackDispatcher(handle, code);
     });
+    client->setErrorHandler([handle](MqttClient::Operation operation, int code, mqtt::ReasonCode reason,
+                                   const std::string &message) {
+        ErrorCallbackDispatcher(handle, operation, code, reason, message);
+    });
 
     // Commit only after construction succeeds; failed creation consumes no slot.
     m_clients.emplace(handle, std::move(client));
+    RegisterCallbackClient(handle);
     ++m_nextHandle;
     return handle;
 }
@@ -54,12 +59,16 @@ void MqttClientMgr::destroy(const int handle) {
     assertGameThread();
     // Invalidate the handle before Paho teardown can enqueue a final event.
     const auto removed = m_clients.extract(handle);
+    RemoveClientCallbacks(handle);
 }
 
 void MqttClientMgr::reset() {
     assertGameThread();
     decltype(m_clients) removed;
     removed.swap(m_clients);
+    for (const auto &entry : removed) {
+        RemoveClientCallbacks(entry.first);
+    }
     // Destruction happens on this thread with all handles already invalidated.
 }
 

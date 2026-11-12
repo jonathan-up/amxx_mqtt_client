@@ -63,31 +63,35 @@ int main(int argc, char **argv) {
         events.onDisconnected();
     });
 
-    // An already-disconnected request fails synchronously in Paho. Its existing
-    // notification must leave the client disconnected and usable for connecting.
-    client.disconnect();
-    events.waitFor(0, 1);
+    auto rejectOfflineDisconnect = [&] {
+        bool rejected = false;
+        try { client.disconnect(); }
+        catch (const mqtt::exception &error) { rejected = error.get_return_code() == MQTTASYNC_DISCONNECTED; }
+        Require(rejected, "Offline disconnect did not report an error");
+    };
+    rejectOfflineDisconnect();
+    events.waitFor(0, 0);
     Require(!client.isConnected(), "Offline disconnect changed the connection state");
 
     // Reuse the same client, so the test catches stale state across reconnects.
     for (int cycle = 1; cycle <= 3; ++cycle) {
         client.connect();
-        events.waitFor(cycle, 2 * cycle - 1);
+        events.waitFor(cycle, cycle - 1);
         Require(client.isConnected(), "Connected client reported disconnected");
         client.disconnect();
-        events.waitFor(cycle, 2 * cycle);
+        events.waitFor(cycle, cycle);
         Require(!client.isConnected(), "Completed disconnect left stale connected state");
         Require(!client.getClient()->is_connected(), "Paho did not complete disconnect");
 
-        client.disconnect();
-        events.waitFor(cycle, 2 * cycle + 1);
+        rejectOfflineDisconnect();
+        events.waitFor(cycle, cycle);
         Require(!client.isConnected(), "Repeated disconnect restored connected state");
     }
 
     // State changes must not depend on a user registering a disconnect handler.
     client.setDisconnectHandler({});
     client.connect();
-    events.waitFor(4, 7);
+    events.waitFor(4, 3);
     client.disconnect();
     const auto deadline = std::chrono::steady_clock::now() + 5s;
     while (client.isConnected() && std::chrono::steady_clock::now() < deadline) {

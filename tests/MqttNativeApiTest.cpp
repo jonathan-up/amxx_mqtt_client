@@ -22,6 +22,7 @@ const auto gameThread = std::this_thread::get_id();
 std::unordered_map<cell, std::string> strings;
 std::unordered_map<int, std::vector<int>> forwards;
 std::vector<std::string> errors;
+std::vector<std::string> logs;
 int nextForward = 1;
 
 struct Message {
@@ -32,6 +33,14 @@ struct Message {
 };
 std::vector<Message> messages;
 std::vector<std::pair<int, int>> callbacks;
+struct ActionError {
+    int handle;
+    int operation;
+    int code;
+    int reason;
+    std::string message;
+};
+std::vector<ActionError> actionErrors;
 
 void Require(bool condition, const char *message) {
     if (!condition) {
@@ -63,7 +72,7 @@ int RegisterForward(AMX *, const char *name, ...) {
     va_list args;
     va_start(args, name);
     for (int type = va_arg(args, int); type != FP_DONE; type = va_arg(args, int)) {
-        Require(types.size() < 3, "Too many callback arguments");
+        Require(types.size() < 5, "Too many callback arguments");
         types.push_back(type);
     }
     va_end(args);
@@ -87,6 +96,12 @@ int ExecuteForward(int id, ...) {
         const std::string topic = va_arg(args, const char *);
         const std::string payload = va_arg(args, const char *);
         messages.push_back({id, handle, topic, payload});
+    } else if (forwards.at(id) == std::vector<int>{FP_CELL, FP_CELL, FP_CELL, FP_CELL, FP_STRING}) {
+        const int operation = va_arg(args, int);
+        const int code = va_arg(args, int);
+        const int reason = va_arg(args, int);
+        const std::string message = va_arg(args, const char *);
+        actionErrors.push_back({handle, operation, code, reason, message});
     }
     va_end(args);
     return 0;
@@ -146,6 +161,10 @@ void CheckCallbackReplacement(const char *broker) {
          {FP_CELL, FP_STRING}, [](int handle) { ConnectionLostCallbackDispatcher(handle, "lost"); }},
         {"mqtt_set_disconnected_callback", &AmxxMqttClient::getDisconnectForwardId,
          {FP_CELL, FP_CELL}, [](int handle) { DisconnectedCallbackDispatcher(handle, mqtt::NORMAL_DISCONNECTION); }},
+        {"mqtt_set_error_callback", &AmxxMqttClient::getErrorForwardId,
+         {FP_CELL, FP_CELL, FP_CELL, FP_CELL, FP_STRING}, [](int handle) {
+             ErrorCallbackDispatcher(handle, MqttClient::Operation::Connect, -1, mqtt::NOT_AUTHORIZED, "denied");
+         }},
     };
     for (const auto &test : cases) {
         const int handle = Call("mqtt_create", {Text(broker), Text("callback-replacement")});
@@ -204,6 +223,77 @@ void CheckConsumedOptions(int handle, int consumed) {
     Require(options && options->getOption()->get_user_name() == "fresh-user",
             "Stale options changed or consumed fresh options");
 }
+
+void CheckFailurePaths(const char *broker) {
+    // Real Paho failures must cross the queue with both Paho and MQTT codes.
+    for (const char *id : {"reject-auth", "connect-timeout", "close-before-connack", "reject-no-handler"}) {
+        errors.clear(); logs.clear(); callbacks.clear(); actionErrors.clear();
+        const int handle = Call("mqtt_create", {Text(broker), Text(id)});
+        Require(handle > 0, "Failure test client creation failed");
+        const bool withHandler = std::strcmp(id, "reject-no-handler") != 0;
+        if (withHandler) Call("mqtt_set_error_callback", {handle, Text("error")});
+        Call("mqtt_set_connected_callback", {handle, Text("connected")});
+        Call("mqtt_set_disconnected_callback", {handle, Text("disconnected")});
+        Call("mqtt_set_connection_lost_callback", {handle, Text("lost")});
+        const int options = Call("mqtt_create_connect_options", {});
+        g_connectOptionMgr.getOptions(options)->getOption()->set_connect_timeout(1);
+        Require(Call("mqtt_connect", {handle, options}) == 1, "Connect request rejected synchronously");
+        WaitFor([] { return !logs.empty(); });
+        Require(!Call("mqtt_is_connect", {handle}), "Failed connection reported connected");
+        Require(errors.empty() && logs.size() == 1, "Async failure was unlogged or duplicated");
+        Require(callbacks.size() == (withHandler ? 1u : 0u), "Failure reported a successful/lost connection");
+        Require(actionErrors.size() == (withHandler ? 1u : 0u), "Incorrect error callback count");
+        if (withHandler) {
+            const auto &error = actionErrors.front();
+            Require(error.handle == handle && error.operation == 1 && !error.message.empty(),
+                    "Error callback arguments were corrupted");
+            if (std::strcmp(id, "reject-auth") == 0) {
+                Require(error.reason == mqtt::NOT_AUTHORIZED, "Broker reason code was lost");
+            } else {
+                Require(error.code != 0, "Transport error code was lost");
+            }
+            // The failed state must allow a subsequent attempt on the same handle.
+            const int retry = Call("mqtt_create_connect_options", {});
+            g_connectOptionMgr.getOptions(retry)->getOption()->set_connect_timeout(1);
+            Require(Call("mqtt_connect", {handle, retry}) == 1, "Failed connection cannot be retried");
+            WaitFor([] { return actionErrors.size() == 2; });
+        }
+        Call("mqtt_destroy", {handle});
+    }
+
+    errors.clear(); logs.clear(); callbacks.clear(); actionErrors.clear();
+    const int handle = Call("mqtt_create", {Text(broker), Text("delayed-connack")});
+    Call("mqtt_set_connected_callback", {handle, Text("connected")});
+    Call("mqtt_set_disconnected_callback", {handle, Text("disconnected")});
+    Call("mqtt_set_error_callback", {handle, Text("error")});
+    Require(Call("mqtt_connect", {handle, Call("mqtt_create_connect_options", {})}) == 1, "Delayed connect rejected");
+    Require(Call("mqtt_disconnect", {handle}) == 0, "Pending connect reported a successful disconnect");
+    Require(Call("mqtt_connect", {handle, Call("mqtt_create_connect_options", {})}) == 0,
+            "Overlapping connection was accepted");
+    ProcessPendingCallbacks();
+    Require(callbacks.empty() && errors.size() == 2, "Rejected requests fabricated completion events");
+    WaitFor([&] { return Call("mqtt_is_connect", {handle}) != 0 && callbacks.size() == 1; });
+    Require(callbacks.front().first == g_mqttClientMgr.getClient(handle)->getOnConnectedForwardId(),
+            "Pending connect emitted a false disconnect");
+    Require(Call("mqtt_disconnect", {handle}) == 1, "Connected disconnect rejected");
+    WaitFor([] { return callbacks.size() == 2; });
+    Require(!Call("mqtt_is_connect", {handle}), "Successful disconnect left stale state");
+    Require(Call("mqtt_disconnect", {handle}) == 0, "Offline disconnect did not report failure");
+    ProcessPendingCallbacks();
+    Require(callbacks.size() == 2 && actionErrors.empty(), "Synchronous rejection fabricated an async result");
+    Call("mqtt_destroy", {handle});
+
+    callbacks.clear();
+    const int cancelled = Call("mqtt_create", {Text(broker), Text("delayed-connack")});
+    Call("mqtt_set_connected_callback", {cancelled, Text("connected")});
+    Call("mqtt_set_error_callback", {cancelled, Text("error")});
+    Require(Call("mqtt_connect", {cancelled, Call("mqtt_create_connect_options", {})}) == 1, "Cancellation connect rejected");
+    Call("mqtt_destroy", {cancelled});
+    std::this_thread::sleep_for(600ms);
+    ProcessPendingCallbacks();
+    Require(callbacks.empty() && GetCallbackQueueStats().count == 0, "Cancelled connect delivered a late callback");
+    Require(forwards.empty(), "Failure paths leaked callback forwards");
+}
 } // namespace
 
 PFN_GET_AMXSTRING g_fn_GetAmxString = GetAmxString;
@@ -221,10 +311,21 @@ void MF_LogError(AMX *, int, const char *format, ...) {
     errors.emplace_back(message);
 }
 
+void MF_Log(const char *format, ...) {
+    Require(std::this_thread::get_id() == gameThread, "Logged an async failure off the game thread");
+    char message[2048];
+    va_list args;
+    va_start(args, format);
+    std::vsnprintf(message, sizeof(message), format, args);
+    va_end(args);
+    logs.emplace_back(message);
+}
+
 int main(int argc, char **argv) {
     Require(argc == 2, "Expected a loopback broker URI");
     StartCallbackDispatcher();
     CheckCallbackReplacement(argv[1]);
+    CheckFailurePaths(argv[1]);
     errors.clear();
     const int handle = Call("mqtt_create", {Text(argv[1]), Text("native-api")});
     Require(handle > 0, "Client creation failed");
