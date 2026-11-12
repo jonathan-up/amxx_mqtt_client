@@ -21,6 +21,13 @@ Disconnect completion uses Paho's action listener, with no detached wait thread.
 Plugin unload also destroys clients and unused connection options before AMXX
 releases their forwards. Create new clients when the next map's plugins load.
 
+Connection option handles are also never reused during a module load, including
+across map changes, with at most 10,000 live options. Once `mqtt_connect()` validates
+both handles, it consumes the options even if Paho immediately rejects the request.
+Create fresh options for each connection attempt; a consumed handle is invalid.
+Replacing any registered callback releases its old forward. If registration fails,
+the previous callback remains active.
+
 `mqtt_disconnect()` is asynchronous. On successful completion the connection
 state becomes false before the disconnected callback is queued, even without a
 registered callback. A pending or failed request alone does not mark a connected
@@ -253,7 +260,9 @@ fake ReHLDS API and a minimal MQTT peer on an ephemeral loopback port; no game
 server or external broker is required. They cover dispatch ordering, stale handles,
 plugin reload, disconnect completion and state, reconnecting, and immediate
 destruction of pending actions. Native API tests also check subscription/publish
-QoS on the wire, QoS 2 acknowledgements, retained flags, validation, and topic/payload order:
+QoS on the wire, QoS 2 acknowledgements, retained flags, validation, topic/payload
+order, all four callback replacements, and rejection of consumed connection options.
+Options manager tests cover stale handles, map-change reset, and the live-options limit:
 
 ```shell
 cmake -S . -B build -DPAHO_WITH_SSL=FALSE -DPAHO_ENABLE_TESTING=FALSE -DAMXX_MQTT_BUILD_TESTS=ON
@@ -261,6 +270,24 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-Windows
+Windows (Win32)
 -------
-No supports yet
+The [CI workflow](.github/workflows/build.yml) builds the module and runs regression
+tests using Visual Studio 2022's Win32 toolchain. Install the Visual Studio 2022 C++
+build tools and Python 3, then run these commands from the repository root:
+
+```shell
+cmake -S . -B build-win32 \
+      -G "Visual Studio 17 2022" -A Win32 \
+      -DPAHO_WITH_MQTT_C=TRUE \
+      -DPAHO_WITH_SSL=FALSE \
+      -DPAHO_ENABLE_TESTING=FALSE \
+      -DAMXX_MQTT_BUILD_TESTS=ON
+cmake --build build-win32 --config Release --parallel
+ctest --test-dir build-win32 -C Release --output-on-failure
+```
+
+The multiline configuration command uses Bash's `\` line continuation. In
+PowerShell or Command Prompt, write the configuration command on a single line.
+
+The resulting module is `build-win32/Release/mqtt_client_amxx.dll`.

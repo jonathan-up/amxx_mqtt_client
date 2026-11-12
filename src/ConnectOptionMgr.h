@@ -5,32 +5,32 @@
 #ifndef CONNECT_OPTION_MGR_H
 #define CONNECT_OPTION_MGR_H
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <thread>
 #include <unordered_map>
-#include <mutex>
-#include <set>
 
 #include "ConnectOption.h"
 
-#define MAX_INDEX 10000
-
+// Like client handles, options are owned and accessed only by the game thread.
 class ConnectOptionMgr {
-    std::unordered_map<int, ConnectOption*> m_options;
-    std::set<int> m_indexUsed;
-    std::mutex m_mutex;
+    std::unordered_map<int, std::unique_ptr<ConnectOption>> m_options;
+    const std::thread::id m_gameThread = std::this_thread::get_id();
+    // Never reset or wrap, including when plugins reload between maps.
+    std::uint64_t m_nextHandle = 1;
+    static constexpr std::size_t maxOptions = 10000;
+
+    void assertGameThread() const;
 
 public:
-    ~ConnectOptionMgr();
-
     int make();
 
-    ConnectOption *getOptions(int index);
+    ConnectOption *getOptions(int handle) const;
 
-    void destroy(int index);
+    void destroy(int handle);
 
     void reset();
-
-private:
-    int makeIndex();
 };
 
 extern ConnectOptionMgr g_connectOptionMgr;

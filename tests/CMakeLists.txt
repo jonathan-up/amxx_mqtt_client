@@ -50,3 +50,12 @@ target_link_libraries(mqtt_native_api_test PRIVATE amxx_module_sdk paho-mqttpp3-
 add_test(NAME mqtt_native_api
     COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/LocalBrokerTest.py $<TARGET_FILE:mqtt_native_api_test>)
 set_tests_properties(mqtt_native_api PROPERTIES TIMEOUT 60)
+
+add_executable(connect_option_mgr_test
+    ConnectOptionMgrTest.cpp
+    ../src/ConnectOption.cpp
+    ../src/ConnectOptionMgr.cpp
+)
+target_link_libraries(connect_option_mgr_test PRIVATE amxx_module_sdk paho-mqttpp3-static)
+add_test(NAME connect_option_mgr COMMAND connect_option_mgr_test)
+set_tests_properties(connect_option_mgr PROPERTIES TIMEOUT 30)

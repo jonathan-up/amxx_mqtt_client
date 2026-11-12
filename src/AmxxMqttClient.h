@@ -20,7 +20,7 @@ public:
 
     [[nodiscard]] int getOnConnectedForwardId() const;
 
-    void setOnConnectedForwardId(int m_i_on_connected_forward_id);
+    void setOnConnectedForwardId(int forwardId);
 
     [[nodiscard]] int getOnMessageForwardId() const;
 
@@ -28,11 +28,11 @@ public:
 
     [[nodiscard]] int getOnConnectionLostForwardId() const;
 
-    void setOnConnectionLostForwardId(int m_i_on_connection_lost_forward_id);
+    void setOnConnectionLostForwardId(int forwardId);
 
     [[nodiscard]] int getDisconnectForwardId() const;
 
-    void setDisconnectForwardId(int m_i_disconnect_forward_id);
+    void setDisconnectForwardId(int forwardId);
 };
 
 #endif //AMXX_MQTT_CLIENT_H

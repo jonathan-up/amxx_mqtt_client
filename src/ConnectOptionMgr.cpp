@@ -4,53 +4,48 @@
 
 #include "ConnectOptionMgr.h"
 
-ConnectOptionMgr::~ConnectOptionMgr() {
-    for (auto &[k, v]: this->m_options) {
-        delete v;
-    }
+#include <cassert>
+#include <limits>
+
+void ConnectOptionMgr::assertGameThread() const {
+    assert(std::this_thread::get_id() == m_gameThread);
 }
 
 int ConnectOptionMgr::make() {
-    if (const int index = this->makeIndex(); index != 0) {
-        auto* co = new ConnectOption{new mqtt::connect_options{MQTTVERSION_5}, new mqtt::properties };
-        this->m_options[index] = co;
-
-        return index;
+    assertGameThread();
+    if (m_options.size() >= maxOptions) {
+        throw mqtt::exception{0, "too many mqtt connect options"};
     }
-    return 0;
+    if (m_nextHandle > static_cast<std::uint64_t>(std::numeric_limits<std::int32_t>::max())) {
+        throw mqtt::exception{0, "mqtt connect options handles exhausted"};
+    }
+
+    const int handle = static_cast<int>(m_nextHandle);
+    // Keep construction exception-safe until ConnectOption takes ownership.
+    auto options = std::make_unique<mqtt::connect_options>(MQTTVERSION_5);
+    auto properties = std::make_unique<mqtt::properties>();
+    auto entry = std::make_unique<ConnectOption>(options.get(), properties.get());
+    options.release();
+    properties.release();
+    m_options.emplace(handle, std::move(entry));
+    ++m_nextHandle;
+    return handle;
 }
 
-ConnectOption *ConnectOptionMgr::getOptions(const int index) {
-    return this->m_options[index];
+ConnectOption *ConnectOptionMgr::getOptions(const int handle) const {
+    assertGameThread();
+    const auto it = m_options.find(handle);
+    return it == m_options.end() ? nullptr : it->second.get();
 }
 
-void ConnectOptionMgr::destroy(const int index) {
-    if (const auto it = this->m_options.find(index); it != this->m_options.end()) {
-        delete it->second;
-        this->m_indexUsed.erase(it->first);
-        this->m_options.erase(it);
-    }
+void ConnectOptionMgr::destroy(const int handle) {
+    assertGameThread();
+    m_options.erase(handle);
 }
 
 void ConnectOptionMgr::reset() {
-    for (auto &[k, v]: this->m_options) {
-        delete v;
-    }
-
-    this->m_indexUsed.clear();
-    this->m_options.clear();
-}
-
-int ConnectOptionMgr::makeIndex() {
-    std::lock_guard lock(this->m_mutex);
-    for (int i = 1; i <= MAX_INDEX; i++) {
-        if (this->m_indexUsed.find(i) == this->m_indexUsed.end()) {
-            this->m_indexUsed.insert(i);
-            return i;
-        }
-    }
-
-    throw mqtt::exception{0, "no index anymore"};
+    assertGameThread();
+    m_options.clear();
 }
 
 ConnectOptionMgr g_connectOptionMgr;

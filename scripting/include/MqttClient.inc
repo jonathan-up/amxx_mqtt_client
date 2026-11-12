@@ -124,7 +124,11 @@ native mqtt_destroy(const MqttHandle:handle);
 /**
  * Connect to blocker
  *
+ * @note Once both handles are validated, options are consumed even if the
+ *       connection request fails. Create fresh options for each attempt.
+ *
  * @param handle which client
+ * @param options connection options to consume
  *
  * @noreturn
  */
@@ -201,6 +205,7 @@ native mqtt_publish(const MqttHandle:handle, const topicName[], const data[], bo
  * The `callback` will be called when client connected
  *
  * callback should be: public on_connected(const MqttHandle:h)
+ * @note Replaces the previous callback only if registration succeeds.
  *
  * @param handle which client
  * @param callback target function
@@ -229,6 +234,7 @@ native mqtt_set_message_callback(const MqttHandle:handle, const callback[]);
  * The `callback` will be called when client connection lost
  *
  * @note callback should be: public on_connection_lost(const MqttHandle:h, const reason[])
+ *       Replaces the previous callback only if registration succeeds.
  *
  * @param handle which client
  * @param callback target function
@@ -241,6 +247,7 @@ native mqtt_set_connection_lost_callback(const MqttHandle:handle, const callback
  * The `callback` will be called when client disconnected
  *
  * @note callback should be: public on_disconnected(const MqttHandle:h, const MqttReasonCode:reasonCode)
+ *       Replaces the previous callback only if registration succeeds.
  *
  * @param handle which client
  * @param callback target function
@@ -251,8 +258,11 @@ native mqtt_set_disconnected_callback(const MqttHandle:handle, const callback[])
 
 /**
  * Create connect options
- * 
- * @return option handle, it must be using in function `mqtt_connect`
+ *
+ * @note Handles are opaque and never reused during a module load, including
+ *       across map changes. Unused options are freed when plugins unload.
+ *
+ * @return option handle for one mqtt_connect() attempt
  */
 native MqttConnectOptions:mqtt_create_connect_options();
 

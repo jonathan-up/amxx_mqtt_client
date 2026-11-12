@@ -6,6 +6,15 @@
 
 #include "sdk/amxxmodule.h"
 
+namespace {
+void ReplaceForward(int &currentId, int forwardId) {
+    if (currentId != -1 && currentId != forwardId) {
+        MF_UnregisterSPForward(currentId);
+    }
+    currentId = forwardId;
+}
+} // namespace
+
 AmxxMqttClient::AmxxMqttClient(const std::string &blocker, const std::string &client) : MqttClient(blocker, client) {
 }
 
@@ -29,8 +38,8 @@ int AmxxMqttClient::getOnConnectedForwardId() const {
     return m_iOnConnectedForwardId;
 }
 
-void AmxxMqttClient::setOnConnectedForwardId(int m_i_on_connected_forward_id) {
-    m_iOnConnectedForwardId = m_i_on_connected_forward_id;
+void AmxxMqttClient::setOnConnectedForwardId(int forwardId) {
+    ReplaceForward(m_iOnConnectedForwardId, forwardId);
 }
 
 int AmxxMqttClient::getOnMessageForwardId() const {
@@ -38,24 +47,21 @@ int AmxxMqttClient::getOnMessageForwardId() const {
 }
 
 void AmxxMqttClient::setOnMessageForwardId(int forwardId) {
-    if (m_iOnMessageForwardId != -1 && m_iOnMessageForwardId != forwardId) {
-        MF_UnregisterSPForward(m_iOnMessageForwardId);
-    }
-    m_iOnMessageForwardId = forwardId;
+    ReplaceForward(m_iOnMessageForwardId, forwardId);
 }
 
 int AmxxMqttClient::getOnConnectionLostForwardId() const {
     return m_iOnConnectionLostForwardId;
 }
 
-void AmxxMqttClient::setOnConnectionLostForwardId(int m_i_on_connection_lost_forward_id) {
-    m_iOnConnectionLostForwardId = m_i_on_connection_lost_forward_id;
+void AmxxMqttClient::setOnConnectionLostForwardId(int forwardId) {
+    ReplaceForward(m_iOnConnectionLostForwardId, forwardId);
 }
 
 int AmxxMqttClient::getDisconnectForwardId() const {
     return m_iOnDisconnectForwardId;
 }
 
-void AmxxMqttClient::setDisconnectForwardId(int m_i_disconnect_forward_id) {
-    m_iOnDisconnectForwardId = m_i_disconnect_forward_id;
+void AmxxMqttClient::setDisconnectForwardId(int forwardId) {
+    ReplaceForward(m_iOnDisconnectForwardId, forwardId);
 }
